@@ -11,15 +11,15 @@ module.exports = {
       },
       colors: {
         premium: {
-          dark: '#0a0a0a',
-          'dark-gray': '#1a1a1a',
-          'medium-gray': '#333333',
-          gold: 'var(--color-primary)',
-          'gold-dark': '#b39700',
-          platinum: '#E5E4E2',
-          diamond: 'var(--color-secondary)',
-          'light-gray': '#d1d5db',
-          'lighter-gray': '#f5f5f5',
+          dark: '#0a0a0a',           // Main dark background
+          'dark-gray': '#1a1a1a',    // Secondary dark
+          'medium-gray': '#333333',  // Borders/accents
+          gold: '#FFD700',           // Primary gold accent
+          'gold-dark': '#b39700',    // Darker gold variant
+          platinum: '#E5E4E2',       // Platinum accent
+          diamond: '#b9f2ff',        // Diamond blue accent
+          'light-gray': '#d1d5db',   // Light text/icons
+          'lighter-gray': '#f5f5f5', // Light mode background
         }
       },
       animation: {
