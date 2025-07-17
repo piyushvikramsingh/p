@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import Header from './components/Header';
@@ -12,9 +12,18 @@ import FilesView from './components/FilesView';
 import MemoryView from './components/MemoryView';
 import TasksView from './components/TasksView';
 import AdminView from './components/admin/AdminView';
+import { useSettings } from './contexts/SettingsContext';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
+  const { brandingSettings } = useSettings();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--color-primary', brandingSettings.primaryColor);
+    root.style.setProperty('--color-secondary', brandingSettings.secondaryColor);
+  }, [brandingSettings.primaryColor, brandingSettings.secondaryColor]);
+
 
   const renderMainContent = () => {
     const contentVariants = {

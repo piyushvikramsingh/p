@@ -14,10 +14,10 @@ module.exports = {
           dark: '#0a0a0a',
           'dark-gray': '#1a1a1a',
           'medium-gray': '#333333',
-          gold: '#FFD700',
+          gold: 'var(--color-primary)',
           'gold-dark': '#b39700',
           platinum: '#E5E4E2',
-          diamond: '#b9f2ff',
+          diamond: 'var(--color-secondary)',
           'light-gray': '#d1d5db',
           'lighter-gray': '#f5f5f5',
         }
@@ -39,8 +39,8 @@ module.exports = {
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
         glow: {
-          '0%': { boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)' },
-          '100%': { boxShadow: '0 0 30px rgba(255, 215, 0, 0.5)' },
+          '0%': { boxShadow: '0 0 20px var(--color-primary-glow)' },
+          '100%': { boxShadow: '0 0 30px var(--color-primary-glow-strong)' },
         },
         gradient: {
           '0%, 100%': { backgroundPosition: '0% 50%' },
@@ -48,9 +48,9 @@ module.exports = {
         },
       },
       backgroundImage: {
-        'gold-diamond-gradient': 'linear-gradient(90deg, #FFD700, #b9f2ff)',
+        'gold-diamond-gradient': 'linear-gradient(90deg, var(--color-primary), var(--color-secondary))',
         'premium-decorative-gradient': 'linear-gradient(to bottom right, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.2), rgba(229, 228, 226, 0.1), rgba(185, 242, 255, 0.2))',
-        'gold-progress-gradient': 'linear-gradient(to right, #b39700, #FFD700)',
+        'gold-progress-gradient': 'linear-gradient(to right, #b39700, var(--color-primary))',
       },
       boxShadow: {
         'gold-glow': '0 0 15px rgba(255, 215, 0, 0.3), 0 0 25px rgba(255, 215, 0, 0.2)',

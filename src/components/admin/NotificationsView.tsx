@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Plus, Send, Mail, MessageSquare, Smartphone, Users, Calendar, Trash2 } from 'lucide-react';
+import { Bell, Plus, Send, Mail, MessageSquare, Smartphone, Users, Calendar, Trash2, FileText, ToggleRight, TestTube2, Save } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useApp } from '../../contexts/AppContext';
 
-type NotificationType = 'email' | 'in-app' | 'push';
+type NotificationType = 'email' | 'in-app' | 'push' | 'sms';
 type TargetAudience = 'all' | 'admins' | 'users' | 'pro-users';
 
 interface SentNotification {
@@ -15,6 +15,18 @@ interface SentNotification {
   target: TargetAudience;
   sentAt: Date;
 }
+
+const SettingCard: React.FC<{ title: string; icon: React.ElementType; children: React.ReactNode; className?: string }> = ({ title, icon: Icon, children, className }) => (
+    <div className={`bg-premium-dark-gray/60 rounded-2xl p-6 border border-white/10 ${className}`}>
+      <div className="flex items-center space-x-3 mb-4">
+        <div className="w-8 h-8 bg-premium-dark-gray rounded-xl flex items-center justify-center border border-white/10">
+          <Icon className="w-4 h-4 text-premium-gold" />
+        </div>
+        <h3 className="text-md font-semibold text-premium-platinum">{title}</h3>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </div>
+);
 
 const NotificationsView: React.FC = () => {
   const { addNotification } = useApp();
@@ -65,7 +77,7 @@ const NotificationsView: React.FC = () => {
   };
   
   const getIconForType = (type: NotificationType) => {
-    const icons = { email: Mail, 'in-app': MessageSquare, push: Smartphone };
+    const icons = { email: Mail, 'in-app': MessageSquare, push: Smartphone, sms: MessageSquare };
     return icons[type];
   }
 
@@ -77,7 +89,6 @@ const NotificationsView: React.FC = () => {
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Create Notification Panel */}
         <div className="w-1/3 border-r border-white/10 p-6 flex flex-col space-y-6 overflow-y-auto">
           <h2 className="text-lg font-semibold text-premium-platinum flex items-center"><Plus className="w-5 h-5 mr-2"/>Create Notification</h2>
           
@@ -93,9 +104,9 @@ const NotificationsView: React.FC = () => {
 
           <div>
             <label className="text-sm font-medium text-premium-light-gray/80 mb-2 block">Channel</label>
-            <div className="flex space-x-2">
-              {(['in-app', 'email', 'push'] as NotificationType[]).map(type => (
-                <button key={type} onClick={() => handleInputChange('type', type)} className={`flex-1 p-2 rounded-lg border text-sm flex items-center justify-center space-x-2 ${newNotification.type === type ? 'bg-premium-gold text-black border-premium-gold' : 'bg-premium-dark-gray border-white/10 hover:border-white/20'}`}>
+            <div className="grid grid-cols-2 gap-2">
+              {(['in-app', 'email', 'push', 'sms'] as NotificationType[]).map(type => (
+                <button key={type} onClick={() => handleInputChange('type', type)} className={`p-2 rounded-lg border text-sm flex items-center justify-center space-x-2 ${newNotification.type === type ? 'bg-premium-gold text-black border-premium-gold' : 'bg-premium-dark-gray border-white/10 hover:border-white/20'}`}>
                   {React.createElement(getIconForType(type), { className: 'w-4 h-4' })}
                   <span>{type.charAt(0).toUpperCase() + type.slice(1)}</span>
                 </button>
@@ -124,34 +135,54 @@ const NotificationsView: React.FC = () => {
           </motion.button>
         </div>
 
-        {/* Sent/Scheduled List */}
-        <div className="w-2/3 p-6 overflow-y-auto">
-          <h2 className="text-lg font-semibold text-premium-platinum mb-4">History</h2>
-          <div className="space-y-4">
-            {sentNotifications.map(notif => {
-              const Icon = getIconForType(notif.type);
-              return (
-                <motion.div key={notif.id} className="bg-premium-dark-gray/60 p-4 rounded-xl border border-white/10" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="flex items-center space-x-3 mb-2">
-                        <Icon className="w-4 h-4 text-premium-light-gray/80"/>
-                        <p className="font-semibold text-premium-platinum">{notif.title}</p>
-                      </div>
-                      <p className="text-sm text-premium-light-gray/70 max-w-lg">{notif.message}</p>
-                    </div>
-                    <button className="p-2 text-premium-light-gray/60 hover:text-red-400"><Trash2 className="w-4 h-4"/></button>
-                  </div>
-                  <div className="text-xs text-premium-light-gray/60 mt-3 flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <span className="flex items-center space-x-1"><Users className="w-3 h-3"/><span>To: {notif.target}</span></span>
-                      <span className="flex items-center space-x-1"><Calendar className="w-3 h-3"/><span>{notif.sentAt.toLocaleString()}</span></span>
-                    </div>
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
+        <div className="w-2/3 p-6 overflow-y-auto space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <SettingCard title="Templates" icon={FileText}>
+                    <p className="text-sm text-premium-light-gray/70">Manage reusable message templates.</p>
+                    <button className="text-sm text-premium-gold hover:underline">Edit Templates</button>
+                </SettingCard>
+                <SettingCard title="Triggers" icon={ToggleRight}>
+                    <p className="text-sm text-premium-light-gray/70">Automate notifications based on user actions.</p>
+                    <button className="text-sm text-premium-gold hover:underline">Configure Triggers</button>
+                </SettingCard>
+                <SettingCard title="A/B Testing" icon={TestTube2}>
+                    <p className="text-sm text-premium-light-gray/70">Optimize engagement by testing different messages.</p>
+                    <button className="text-sm text-premium-gold hover:underline">Create New Test</button>
+                </SettingCard>
+                <SettingCard title="User Preferences" icon={Users}>
+                    <p className="text-sm text-premium-light-gray/70">View and manage user opt-in/out settings.</p>
+                    <button className="text-sm text-premium-gold hover:underline">View Preferences</button>
+                </SettingCard>
+            </div>
+            
+            <div>
+                <h2 className="text-lg font-semibold text-premium-platinum mb-4">History</h2>
+                <div className="space-y-4">
+                    {sentNotifications.map(notif => {
+                    const Icon = getIconForType(notif.type);
+                    return (
+                        <motion.div key={notif.id} className="bg-premium-dark-gray/60 p-4 rounded-xl border border-white/10" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                        <div className="flex justify-between items-start">
+                            <div>
+                            <div className="flex items-center space-x-3 mb-2">
+                                <Icon className="w-4 h-4 text-premium-light-gray/80"/>
+                                <p className="font-semibold text-premium-platinum">{notif.title}</p>
+                            </div>
+                            <p className="text-sm text-premium-light-gray/70 max-w-lg">{notif.message}</p>
+                            </div>
+                            <button className="p-2 text-premium-light-gray/60 hover:text-red-400"><Trash2 className="w-4 h-4"/></button>
+                        </div>
+                        <div className="text-xs text-premium-light-gray/60 mt-3 flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                            <span className="flex items-center space-x-1"><Users className="w-3 h-3"/><span>To: {notif.target}</span></span>
+                            <span className="flex items-center space-x-1"><Calendar className="w-3 h-3"/><span>{notif.sentAt.toLocaleString()}</span></span>
+                            </div>
+                        </div>
+                        </motion.div>
+                    )
+                    })}
+                </div>
+            </div>
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { User } from '../../lib/mock-data';
 import { useApp } from '../../contexts/AppContext';
 import UserTable from './UserTable';
 import ActionConfirmationModal from './ActionConfirmationModal';
+import EditUserModal from './EditUserModal';
 import { Search, Plus, Download, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -13,6 +14,7 @@ const UserManagementView: React.FC = () => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [modalState, setModalState] = useState({ isOpen: false, action: '', userId: '' });
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const usersPerPage = 10;
 
   const filteredUsers = useMemo(() => {
@@ -44,7 +46,18 @@ const UserManagementView: React.FC = () => {
   };
 
   const handleAction = (action: string, userId: string) => {
-    setModalState({ isOpen: true, action, userId });
+    if (action === 'edit') {
+      const userToEdit = users.find(u => u.id === userId);
+      if (userToEdit) setEditingUser(userToEdit);
+    } else {
+      setModalState({ isOpen: true, action, userId });
+    }
+  };
+  
+  const handleSaveUser = (updatedUser: User) => {
+    setUsers(prevUsers => prevUsers.map(u => u.id === updatedUser.id ? updatedUser : u));
+    toast.success(`User ${updatedUser.name} updated successfully.`);
+    setEditingUser(null);
   };
 
   const confirmAction = () => {
@@ -99,6 +112,15 @@ const UserManagementView: React.FC = () => {
         title={getModalContent().title}
         message={getModalContent().message}
       />
+      
+      {editingUser && (
+        <EditUserModal
+          isOpen={!!editingUser}
+          onClose={() => setEditingUser(null)}
+          user={editingUser}
+          onSave={handleSaveUser}
+        />
+      )}
       
       {/* Header */}
       <div className="p-6 border-b border-white/10 flex-shrink-0">

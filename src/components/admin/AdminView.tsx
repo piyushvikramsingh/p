@@ -6,6 +6,12 @@ import UserManagementView from './UserManagementView';
 import AuthSettingsView from './AuthSettingsView';
 import NotificationsView from './NotificationsView';
 import LogsView from './LogsView';
+import ApiManagementView from './ApiManagementView';
+import DataStorageView from './DataStorageView';
+import AutomationView from './AutomationView';
+import BrandingView from './BrandingView';
+import IntegrationsView from './IntegrationsView';
+import BackupExportView from './BackupExportView';
 
 const AdminView: React.FC = () => {
   const [activeAdminTab, setActiveAdminTab] = useState('dashboard');
@@ -24,6 +30,12 @@ const AdminView: React.FC = () => {
       auth: <AuthSettingsView />,
       notifications: <NotificationsView />,
       logs: <LogsView />,
+      api: <ApiManagementView />,
+      storage: <DataStorageView />,
+      automation: <AutomationView />,
+      branding: <BrandingView />,
+      integrations: <IntegrationsView />,
+      backups: <BackupExportView />,
     };
 
     return (

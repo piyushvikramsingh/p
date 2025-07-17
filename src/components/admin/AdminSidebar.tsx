@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Users, KeyRound, Bell, History } from 'lucide-react';
+import { LayoutDashboard, Users, KeyRound, Bell, History, Database, Wand2, Cpu, Palette, Puzzle, Archive } from 'lucide-react';
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -13,7 +13,13 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActiveTab }) 
     { id: 'users', label: 'User Management', icon: Users },
     { id: 'auth', label: 'Authentication', icon: KeyRound },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'api', label: 'API Management', icon: Cpu },
+    { id: 'storage', label: 'Data Storage', icon: Database },
+    { id: 'automation', label: 'Automation', icon: Wand2 },
     { id: 'logs', label: 'Logs & Audits', icon: History },
+    { id: 'branding', label: 'Branding', icon: Palette },
+    { id: 'integrations', label: 'Integrations', icon: Puzzle },
+    { id: 'backups', label: 'Backups & Export', icon: Archive },
   ];
 
   return (
@@ -22,7 +28,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActiveTab }) 
         <h2 className="text-xl font-bold text-premium-platinum px-3">Admin Panel</h2>
         <p className="text-xs text-premium-light-gray/60 px-3">System Management</p>
       </div>
-      <nav className="flex-1 space-y-2">
+      <nav className="flex-1 space-y-2 overflow-y-auto pr-2">
         {menuItems.map((item, index) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -42,7 +48,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActiveTab }) 
               transition={{ delay: index * 0.05 }}
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
-              <span className="font-medium text-sm ml-3">{item.label}</span>
+              <span className="font-medium text-sm ml-3 text-left">{item.label}</span>
               {isActive && (
                 <motion.div
                   className="absolute left-0 top-0 bottom-0 w-1 bg-premium-gold rounded-r-full"

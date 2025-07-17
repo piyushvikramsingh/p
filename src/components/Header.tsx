@@ -3,10 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Bell, Search, MoreHorizontal, User, LogOut, MessageSquare } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { useApp } from '../contexts/AppContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 const Header: React.FC = () => {
   const { user, logout } = useUser();
   const { notifications, markNotificationsAsRead } = useApp();
+  const { brandingSettings } = useSettings();
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isNotifDropdownOpen, setIsNotifDropdownOpen] = useState(false);
   
@@ -36,7 +38,11 @@ const Header: React.FC = () => {
       >
         <div className="relative">
           <div className="w-8 h-8 bg-gold-diamond-gradient rounded-xl flex items-center justify-center shadow-lg shadow-premium-gold/20">
-            <span className="text-black font-bold text-sm">{user.avatarInitial}</span>
+            {brandingSettings.logoUrl ? (
+              <img src={brandingSettings.logoUrl} alt="Logo" className="w-6 h-6 object-contain" />
+            ) : (
+              <span className="text-black font-bold text-sm">{user.avatarInitial}</span>
+            )}
           </div>
         </div>
         <div>
