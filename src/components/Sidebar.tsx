@@ -6,13 +6,14 @@ import {
   Settings, 
   HelpCircle,
   ChevronLeft,
-  ChevronRight,
   Home,
   CheckSquare,
   Brain,
   FolderOpen,
-  Calendar
+  Calendar,
+  Shield
 } from 'lucide-react';
+import { useUser } from '../contexts/UserContext';
 
 interface SidebarProps {
   activeTab: string;
@@ -21,6 +22,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { user } = useUser();
 
   const menuItems = [
     { id: 'home', label: 'Home', icon: Home },
@@ -31,19 +33,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'calendar', label: 'Calendar', icon: Calendar },
   ];
 
+  if (user?.role === 'Super Admin') {
+    menuItems.push({ id: 'admin', label: 'Admin', icon: Shield });
+  }
+
   const bottomItems = [
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'help', label: 'Help', icon: HelpCircle },
-  ];
-
-  const recentChats = [
-    { id: 1, title: 'React optimization tips', time: '2h ago', isActive: true },
-    { id: 2, title: 'Data analysis workflow', time: '1d ago', isActive: false },
-    { id: 3, title: 'UI/UX best practices', time: '3d ago', isActive: false },
-    { id: 4, title: 'Marketing campaign strategy', time: '4d ago', isActive: false },
-    { id: 5, title: 'Backend API integration plan', time: '5d ago', isActive: false },
-    { id: 6, title: 'Q4 financial report review', time: '6d ago', isActive: false },
-    { id: 7, title: 'New feature brainstorming session', time: '1w ago', isActive: false },
   ];
 
   const handleNewChat = () => {
@@ -84,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
           whileTap={{ scale: 0.98 }}
         >
           <Plus className="w-5 h-5 flex-shrink-0" />
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             {!isCollapsed && (
               <motion.span 
                 className="font-semibold text-sm ml-3"
@@ -124,7 +120,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
                 transition={{ delay: index * 0.05 }}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
-                <AnimatePresence mode="wait">
+                <AnimatePresence>
                   {!isCollapsed && (
                     <motion.span
                       className="font-medium text-sm ml-3"
@@ -149,47 +145,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
             );
           })}
         </div>
-
-        {/* Recent Chats Section */}
-        <AnimatePresence mode="wait">
-          {!isCollapsed && (
-            <motion.div
-              className="pt-6"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <h3 className="text-xs font-semibold text-premium-light-gray/50 uppercase tracking-wider mb-3 px-4">
-                Recent
-              </h3>
-              <div className="space-y-1">
-                {recentChats.map((chat, index) => (
-                  <motion.div
-                    key={chat.id}
-                    className={`group p-3 rounded-xl cursor-pointer transition-all duration-200 relative ${
-                      chat.isActive 
-                        ? 'bg-premium-dark-gray text-premium-gold' 
-                        : 'hover:bg-premium-dark-gray/50 text-premium-light-gray hover:text-premium-platinum'
-                    }`}
-                    whileHover={{ scale: 1.01, x: 2 }}
-                    onClick={() => setActiveTab('chat')}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <p className="text-sm font-medium truncate">
-                      {chat.title}
-                    </p>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </nav>
 
-      {/* Bottom Navigation - Fixed positioning */}
+      {/* Bottom Navigation */}
       <div className="p-4 border-t border-white/10 bg-premium-dark flex-shrink-0" style={{ overflow: 'hidden' }}>
         <div className="space-y-2">
           {bottomItems.map((item, index) => {
@@ -212,7 +170,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
                 transition={{ delay: 0.4 + index * 0.05 }}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
-                <AnimatePresence mode="wait">
+                <AnimatePresence>
                   {!isCollapsed && (
                     <motion.span
                       className="font-medium text-sm ml-3"
@@ -226,13 +184,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
                     </motion.span>
                   )}
                 </AnimatePresence>
-                {isActive && (
-                  <motion.div
-                    className="absolute left-0 top-0 bottom-0 w-1 bg-premium-gold rounded-r-full"
-                    layoutId="activeBottomTab"
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                )}
               </motion.button>
             );
           })}

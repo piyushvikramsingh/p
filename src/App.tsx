@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -12,6 +11,7 @@ import CalendarView from './components/CalendarView';
 import FilesView from './components/FilesView';
 import MemoryView from './components/MemoryView';
 import TasksView from './components/TasksView';
+import AdminView from './components/admin/AdminView';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
@@ -57,6 +57,7 @@ const App: React.FC = () => {
       case 'home':
         return (
           <motion.div 
+            key="home"
             variants={contentVariants} 
             initial="initial" 
             animate="animate" 
@@ -70,6 +71,7 @@ const App: React.FC = () => {
       case 'chat':
         return (
           <motion.div 
+            key="chat"
             variants={contentVariants} 
             initial="initial" 
             animate="animate" 
@@ -83,6 +85,7 @@ const App: React.FC = () => {
       case 'settings':
         return (
           <motion.div 
+            key="settings"
             variants={contentVariants} 
             initial="initial" 
             animate="animate" 
@@ -96,6 +99,7 @@ const App: React.FC = () => {
       case 'calendar':
         return (
           <motion.div 
+            key="calendar"
             variants={contentVariants} 
             initial="initial" 
             animate="animate" 
@@ -109,6 +113,7 @@ const App: React.FC = () => {
       case 'files':
         return (
           <motion.div 
+            key="files"
             variants={contentVariants} 
             initial="initial" 
             animate="animate" 
@@ -122,6 +127,7 @@ const App: React.FC = () => {
       case 'memory':
         return (
           <motion.div 
+            key="memory"
             variants={contentVariants} 
             initial="initial" 
             animate="animate" 
@@ -135,6 +141,7 @@ const App: React.FC = () => {
       case 'tasks':
         return (
           <motion.div 
+            key="tasks"
             variants={contentVariants} 
             initial="initial" 
             animate="animate" 
@@ -145,11 +152,26 @@ const App: React.FC = () => {
             <TasksView />
           </motion.div>
         );
+      case 'admin':
+        return (
+          <motion.div 
+            key="admin"
+            variants={contentVariants} 
+            initial="initial" 
+            animate="animate" 
+            exit="exit" 
+            transition={{ duration: 0.3 }}
+            className="h-full"
+          >
+            <AdminView />
+          </motion.div>
+        );
       case 'help':
         return <PlaceholderView title="Help & Support" description="Get help and support for P.AI" />;
       default:
         return (
           <motion.div 
+            key="default"
             variants={contentVariants} 
             initial="initial" 
             animate="animate" 
@@ -164,34 +186,32 @@ const App: React.FC = () => {
   };
 
   return (
-    <ThemeProvider>
-      <div className="min-h-screen bg-premium-dark font-inter">
-        <Header />
-        <div className="flex h-[calc(100vh-4rem)]">
-          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-          <main className="flex-1 overflow-hidden bg-premium-dark">
-            <AnimatePresence mode="wait">
-              {renderMainContent()}
-            </AnimatePresence>
-          </main>
-          <AnimatePresence>
-            {activeTab === 'chat' && <RightPanel />}
+    <div className="min-h-screen bg-premium-dark font-inter">
+      <Header />
+      <div className="flex h-[calc(100vh-4rem)]">
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        <main className="flex-1 overflow-hidden bg-premium-dark">
+          <AnimatePresence mode="wait">
+            {renderMainContent()}
           </AnimatePresence>
-        </div>
-        <Toaster 
-          position="top-right"
-          toastOptions={{
-            duration: 3000,
-            style: {
-              background: 'rgba(26, 26, 26, 0.9)',
-              color: '#E5E4E2',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-            },
-          }}
-        />
+        </main>
+        <AnimatePresence>
+          {activeTab === 'chat' && <RightPanel />}
+        </AnimatePresence>
       </div>
-    </ThemeProvider>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: 'rgba(26, 26, 26, 0.9)',
+            color: '#E5E4E2',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+          },
+        }}
+      />
+    </div>
   );
 };
 

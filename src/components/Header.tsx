@@ -1,8 +1,26 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Settings, Bell, Search, MoreHorizontal } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Settings, Bell, Search, MoreHorizontal, User, LogOut, MessageSquare } from 'lucide-react';
+import { useUser } from '../contexts/UserContext';
+import { useApp } from '../contexts/AppContext';
 
 const Header: React.FC = () => {
+  const { user, logout } = useUser();
+  const { notifications, markNotificationsAsRead } = useApp();
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [isNotifDropdownOpen, setIsNotifDropdownOpen] = useState(false);
+  
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  if (!user) return null;
+
+  const handleNotifClick = () => {
+    setIsNotifDropdownOpen(!isNotifDropdownOpen);
+    if (!isNotifDropdownOpen) {
+      markNotificationsAsRead();
+    }
+  };
+
   return (
     <motion.header 
       className="h-16 bg-premium-dark/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-6 sticky top-0 z-50"
@@ -18,7 +36,7 @@ const Header: React.FC = () => {
       >
         <div className="relative">
           <div className="w-8 h-8 bg-gold-diamond-gradient rounded-xl flex items-center justify-center shadow-lg shadow-premium-gold/20">
-            <span className="text-black font-bold text-sm">P</span>
+            <span className="text-black font-bold text-sm">{user.avatarInitial}</span>
           </div>
         </div>
         <div>
@@ -54,14 +72,56 @@ const Header: React.FC = () => {
         transition={{ delay: 0.3 }}
       >
         {/* Notifications */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative p-2 rounded-xl hover:bg-premium-dark-gray transition-colors"
-        >
-          <Bell className="w-5 h-5 text-premium-light-gray" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-premium-dark"></span>
-        </motion.button>
+        <div className="relative">
+          <motion.button
+            onClick={handleNotifClick}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative p-2 rounded-xl hover:bg-premium-dark-gray transition-colors"
+          >
+            <Bell className="w-5 h-5 text-premium-light-gray" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 text-xs bg-red-500 rounded-full border-2 border-premium-dark flex items-center justify-center text-white">
+                {unreadCount}
+              </span>
+            )}
+          </motion.button>
+          <AnimatePresence>
+            {isNotifDropdownOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 mt-3 w-80 bg-premium-dark-gray rounded-xl border border-white/10 shadow-lg z-20 origin-top-right"
+                onMouseLeave={() => setIsNotifDropdownOpen(false)}
+              >
+                <div className="p-3 border-b border-white/10">
+                  <h3 className="font-semibold text-premium-platinum">Notifications</h3>
+                </div>
+                <ul className="p-2 max-h-80 overflow-y-auto">
+                  {notifications.length > 0 ? notifications.map(notif => (
+                    <li key={notif.id} className="p-3 rounded-lg hover:bg-premium-medium-gray/50">
+                      <div className="flex items-start space-x-3">
+                        <div className="w-8 h-8 bg-premium-dark-gray/60 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <MessageSquare className="w-4 h-4 text-premium-gold"/>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-premium-platinum">{notif.title}</p>
+                          <p className="text-xs text-premium-light-gray/80">{notif.message}</p>
+                          <p className="text-xs text-premium-light-gray/50 mt-1">{new Date(notif.createdAt).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </li>
+                  )) : (
+                    <li className="p-4 text-center text-sm text-premium-light-gray/70">No new notifications.</li>
+                  )}
+                </ul>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
 
         {/* Settings */}
         <motion.button
@@ -76,24 +136,58 @@ const Header: React.FC = () => {
         <div className="w-px h-6 bg-white/10 mx-2"></div>
 
         {/* User Profile */}
-        <motion.div 
-          className="flex items-center space-x-3 cursor-pointer group"
-          whileHover={{ scale: 1.02 }}
-          transition={{ type: "spring", stiffness: 400, damping: 10 }}
-        >
-          <div className="relative">
-            <div className="w-9 h-9 bg-gold-diamond-gradient rounded-full flex items-center justify-center shadow-md shadow-premium-gold/20">
-              <span className="text-black font-semibold text-sm">P</span>
+        <div className="relative">
+          <motion.div 
+            className="flex items-center space-x-3 cursor-pointer group"
+            onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+          >
+            <div className="relative">
+              <div className="w-9 h-9 bg-gold-diamond-gradient rounded-full flex items-center justify-center shadow-md shadow-premium-gold/20">
+                <span className="text-black font-semibold text-sm">{user.avatarInitial}</span>
+              </div>
             </div>
-          </div>
-          <div className="hidden lg:block">
-            <p className="text-sm font-semibold text-premium-platinum group-hover:text-premium-gold transition-colors">
-              Piyush
-            </p>
-            <p className="text-xs text-premium-light-gray/70">Pro Plan</p>
-          </div>
-          <MoreHorizontal className="w-4 h-4 text-premium-light-gray/50 group-hover:text-premium-light-gray transition-colors" />
-        </motion.div>
+            <div className="hidden lg:block">
+              <p className="text-sm font-semibold text-premium-platinum group-hover:text-premium-gold transition-colors">
+                {user.name.split(' ')[0]}
+              </p>
+              <p className="text-xs text-premium-light-gray/70">{user.role}</p>
+            </div>
+            <MoreHorizontal className="w-4 h-4 text-premium-light-gray/50 group-hover:text-premium-light-gray transition-colors" />
+          </motion.div>
+
+          <AnimatePresence>
+            {isUserDropdownOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 mt-3 w-48 bg-premium-dark-gray rounded-xl border border-white/10 shadow-lg z-20 origin-top-right"
+                onMouseLeave={() => setIsUserDropdownOpen(false)}
+              >
+                <ul className="p-2">
+                  <li className="px-3 py-2">
+                    <p className="text-sm font-semibold text-premium-platinum">{user.name}</p>
+                    <p className="text-xs text-premium-light-gray/60 truncate">{user.email}</p>
+                  </li>
+                  <li className="h-px bg-white/10 my-1"></li>
+                  <li>
+                    <button className="w-full flex items-center space-x-3 px-3 py-2 text-sm rounded-lg transition-colors text-premium-light-gray hover:bg-premium-medium-gray/50">
+                      <User className="w-4 h-4" /><span>Profile</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={logout} className="w-full flex items-center space-x-3 px-3 py-2 text-sm rounded-lg transition-colors text-red-400 hover:bg-red-500/10">
+                      <LogOut className="w-4 h-4" /><span>Logout</span>
+                    </button>
+                  </li>
+                </ul>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </motion.div>
     </motion.header>
   );

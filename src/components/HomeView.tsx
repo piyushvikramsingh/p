@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { MessageSquare, Zap, Code, Lightbulb, TrendingUp, BookOpen, ArrowRight, Sparkles } from 'lucide-react';
+import { useUser } from '../contexts/UserContext';
 
 const HomeView: React.FC = () => {
+  const { user } = useUser();
   const suggestions = [
     { title: 'Explain quantum computing', icon: Zap },
     { title: 'Write a React component', icon: Code },
@@ -11,6 +13,8 @@ const HomeView: React.FC = () => {
     { title: 'Create a study plan', icon: BookOpen },
     { title: 'Creative writing prompt', icon: MessageSquare },
   ];
+
+  if (!user) return null;
 
   return (
     <div className="h-full bg-premium-dark overflow-y-auto">
@@ -27,7 +31,7 @@ const HomeView: React.FC = () => {
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           >
             <div className="w-24 h-24 bg-gold-diamond-gradient rounded-3xl flex items-center justify-center shadow-2xl shadow-premium-gold/20">
-              <span className="text-black font-bold text-4xl">P</span>
+              <span className="text-black font-bold text-4xl">{user.avatarInitial}</span>
             </div>
             <div className="absolute -top-2 -right-2 w-8 h-8 bg-premium-diamond rounded-full flex items-center justify-center shadow-lg">
               <Sparkles className="w-4 h-4 text-black" />
@@ -41,7 +45,7 @@ const HomeView: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              Good morning, Piyush!
+              Good morning, {user.name.split(' ')[0]}!
             </motion.h1>
             <motion.p 
               className="text-premium-light-gray/70 text-xl"

@@ -86,7 +86,7 @@ const FilesView: React.FC = () => {
       modified: '1 week ago',
       path: '/Images/Team Photo.jpg',
       isStarred: false,
-      thumbnail: 'https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://placehold.co/300x200/FFD700/000000?text=Team+Photo',
+      thumbnail: 'https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://placehold.co/300x200/FFD700/000000?text=Team+Photo',
       tags: ['team', 'photo']
     },
     {
