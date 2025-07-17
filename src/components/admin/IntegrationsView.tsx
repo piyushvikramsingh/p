@@ -65,7 +65,7 @@ const IntegrationsView: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <IntegrationCard title="AI Providers" icon={Bot}>
-                    <ApiKeyInput label="ChatGPT API Key" placeholder="sk-xxxxxxxxxxxxxxxx" />
+                    <ApiKeyInput label="open ai key" placeholder="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" />
                     <p className="text-xs text-premium-light-gray/60">Connect your OpenAI account to power chat features.</p>
                 </IntegrationCard>
 
