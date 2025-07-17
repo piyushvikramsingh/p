@@ -11,10 +11,7 @@ import {
   CheckSquare,
   Brain,
   FolderOpen,
-  Calendar,
-  Crown,
-  Star,
-  Zap
+  Calendar
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -43,6 +40,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     { id: 1, title: 'React optimization tips', time: '2h ago', isActive: true },
     { id: 2, title: 'Data analysis workflow', time: '1d ago', isActive: false },
     { id: 3, title: 'UI/UX best practices', time: '3d ago', isActive: false },
+    { id: 4, title: 'Marketing campaign strategy', time: '4d ago', isActive: false },
+    { id: 5, title: 'Backend API integration plan', time: '5d ago', isActive: false },
+    { id: 6, title: 'Q4 financial report review', time: '6d ago', isActive: false },
+    { id: 7, title: 'New feature brainstorming session', time: '1w ago', isActive: false },
   ];
 
   const handleNewChat = () => {
@@ -51,45 +52,47 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
 
   return (
     <motion.aside
-      className="bg-premium-dark/95 backdrop-blur-xl border-r border-white/10 flex flex-col h-full relative"
-      initial={{ x: -300 }}
+      className="bg-premium-dark border-r border-white/10 flex flex-col h-full relative flex-shrink-0"
+      initial={{ width: 280 }}
       animate={{ 
-        x: 0, 
-        width: isCollapsed ? 72 : 280 
+        width: isCollapsed ? 80 : 280 
       }}
-      transition={{ duration: 0.4, ease: "easeInOut" }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
+      style={{ overflow: 'hidden' }}
     >
       {/* Collapse Toggle */}
       <motion.button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute top-6 -right-3 w-6 h-6 bg-premium-dark-gray border border-white/20 rounded-full flex items-center justify-center shadow-lg z-10 hover:shadow-xl transition-all duration-200 hover:bg-premium-medium-gray"
+        className="absolute top-6 -right-3 w-6 h-6 bg-premium-dark-gray border border-white/20 rounded-full flex items-center justify-center shadow-lg z-20 hover:shadow-xl transition-all duration-200 hover:bg-premium-medium-gray"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
       >
-        {isCollapsed ? (
-          <ChevronRight className="w-3 h-3 text-premium-light-gray" />
-        ) : (
+        <motion.div
+          animate={{ rotate: isCollapsed ? 180 : 0 }}
+          transition={{ duration: 0.3 }}
+        >
           <ChevronLeft className="w-3 h-3 text-premium-light-gray" />
-        )}
+        </motion.div>
       </motion.button>
 
       {/* New Chat Button */}
-      <div className="p-4 border-b border-white/10">
+      <div className="p-4 border-b border-white/10 flex-shrink-0" style={{ overflow: 'hidden' }}>
         <motion.button
           onClick={handleNewChat}
           className="w-full flex items-center justify-center px-4 py-3 rounded-xl bg-gold-diamond-gradient text-black transition-all duration-200 shadow-lg hover:shadow-gold-glow"
           whileHover={{ scale: 1.02, y: -1 }}
           whileTap={{ scale: 0.98 }}
         >
-          <Plus className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
-          <AnimatePresence>
+          <Plus className="w-5 h-5 flex-shrink-0" />
+          <AnimatePresence mode="wait">
             {!isCollapsed && (
               <motion.span 
-                className="font-semibold text-sm"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
+                className="font-semibold text-sm ml-3"
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
                 transition={{ duration: 0.2 }}
+                style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}
               >
                 New Chat
               </motion.span>
@@ -99,188 +102,140 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
-        {menuItems.map((item, index) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          
-          return (
-            <motion.button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 group relative ${
-                isActive
-                  ? 'bg-premium-dark-gray text-premium-gold'
-                  : 'text-premium-light-gray/70 hover:bg-premium-dark-gray/50 hover:text-premium-platinum'
-              }`}
-              whileHover={{ scale: 1.02, x: 2 }}
-              whileTap={{ scale: 0.98 }}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Icon className={`w-5 h-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
-              <AnimatePresence>
-                {!isCollapsed && (
-                  <motion.span
-                    className="font-medium text-sm"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {item.label}
-                  </motion.span>
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        <div className="space-y-2">
+          {menuItems.map((item, index) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            
+            return (
+              <motion.button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+                  isActive
+                    ? 'bg-premium-dark-gray text-premium-gold'
+                    : 'text-premium-light-gray/70 hover:bg-premium-dark-gray/50 hover:text-premium-platinum'
+                }`}
+                whileHover={{ scale: 1.02, x: 2 }}
+                whileTap={{ scale: 0.98 }}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                <AnimatePresence mode="wait">
+                  {!isCollapsed && (
+                    <motion.span
+                      className="font-medium text-sm ml-3"
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: 'auto' }}
+                      exit={{ opacity: 0, width: 0 }}
+                      transition={{ duration: 0.2 }}
+                      style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}
+                    >
+                      {item.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                {isActive && (
+                  <motion.div
+                    className="absolute left-0 top-0 bottom-0 w-1 bg-premium-gold rounded-r-full"
+                    layoutId="activeTab"
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
                 )}
-              </AnimatePresence>
-              {isActive && (
-                <motion.div
-                  className="absolute left-0 top-0 bottom-0 w-1 bg-premium-gold rounded-r-full"
-                  layoutId="activeTab"
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                />
-              )}
-            </motion.button>
-          );
-        })}
-      </nav>
+              </motion.button>
+            );
+          })}
+        </div>
 
-      {/* Recent Chats */}
-      <AnimatePresence>
-        {!isCollapsed && (
-          <motion.div
-            className="flex-1 px-4 py-2 overflow-y-auto"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <h3 className="text-xs font-semibold text-premium-light-gray/50 uppercase tracking-wider mb-3">
-              Recent
-            </h3>
-            <div className="space-y-1">
-              {recentChats.map((chat, index) => (
-                <motion.div
-                  key={chat.id}
-                  className={`group p-3 rounded-xl cursor-pointer transition-all duration-200 relative ${
-                    chat.isActive 
-                      ? 'bg-premium-dark-gray text-premium-gold' 
-                      : 'hover:bg-premium-dark-gray/50 text-premium-light-gray hover:text-premium-platinum'
-                  }`}
-                  whileHover={{ scale: 1.01, x: 2 }}
-                  onClick={() => setActiveTab('chat')}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <p className="text-sm font-medium truncate">
-                    {chat.title}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Bottom Section */}
-      <div className="mt-auto">
-        {/* Upgrade Section */}
-        <AnimatePresence>
+        {/* Recent Chats Section */}
+        <AnimatePresence mode="wait">
           {!isCollapsed && (
             <motion.div
-              className="p-4 border-t border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ delay: 0.3 }}
+              className="pt-6"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
             >
-              <div className="relative bg-premium-dark backdrop-blur-xl rounded-2xl p-5 border border-white/10 shadow-xl overflow-hidden">
-                {/* Background gradient effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-premium-gold/5 via-premium-diamond/5 to-premium-platinum/5 rounded-2xl" />
-                
-                <div className="relative z-10">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <div className="w-8 h-8 bg-gold-diamond-gradient rounded-xl flex items-center justify-center shadow-lg">
-                      <Crown className="w-4 h-4 text-black" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-premium-platinum">Upgrade to Pro</h3>
-                      <p className="text-xs text-premium-light-gray/60">Unlock unlimited power</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center space-x-2">
-                      <Star className="w-3 h-3 text-premium-gold" />
-                      <span className="text-xs text-premium-light-gray/80">Unlimited conversations</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Zap className="w-3 h-3 text-premium-diamond" />
-                      <span className="text-xs text-premium-light-gray/80">Priority support</span>
-                    </div>
-                  </div>
-                  
-                  <motion.button 
-                    className="w-full bg-gold-diamond-gradient text-black px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:shadow-gold-glow transition-all duration-200"
-                    whileHover={{ scale: 1.02, y: -1 }}
-                    whileTap={{ scale: 0.98 }}
+              <h3 className="text-xs font-semibold text-premium-light-gray/50 uppercase tracking-wider mb-3 px-4">
+                Recent
+              </h3>
+              <div className="space-y-1">
+                {recentChats.map((chat, index) => (
+                  <motion.div
+                    key={chat.id}
+                    className={`group p-3 rounded-xl cursor-pointer transition-all duration-200 relative ${
+                      chat.isActive 
+                        ? 'bg-premium-dark-gray text-premium-gold' 
+                        : 'hover:bg-premium-dark-gray/50 text-premium-light-gray hover:text-premium-platinum'
+                    }`}
+                    whileHover={{ scale: 1.01, x: 2 }}
+                    onClick={() => setActiveTab('chat')}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
                   >
-                    Start Free Trial
-                  </motion.button>
-                </div>
+                    <p className="text-sm font-medium truncate">
+                      {chat.title}
+                    </p>
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+      </nav>
 
-        {/* Bottom Navigation */}
-        <div className="p-4 border-t border-white/10 bg-premium-dark backdrop-blur-xl">
-          <div className="space-y-2">
-            {bottomItems.map((item, index) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              
-              return (
-                <motion.button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 group relative ${
-                    isActive
-                      ? 'bg-premium-dark-gray text-premium-gold'
-                      : 'text-premium-light-gray/70 hover:bg-premium-dark-gray/50 hover:text-premium-platinum'
-                  }`}
-                  whileHover={{ scale: 1.02, x: 2 }}
-                  whileTap={{ scale: 0.98 }}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Icon className={`w-5 h-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
-                  <AnimatePresence>
-                    {!isCollapsed && (
-                      <motion.span
-                        className="font-medium text-sm"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        {item.label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                  {isActive && (
-                    <motion.div
-                      className="absolute left-0 top-0 bottom-0 w-1 bg-premium-gold rounded-r-full"
-                      layoutId="activeBottomTab"
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    />
+      {/* Bottom Navigation - Fixed positioning */}
+      <div className="p-4 border-t border-white/10 bg-premium-dark flex-shrink-0" style={{ overflow: 'hidden' }}>
+        <div className="space-y-2">
+          {bottomItems.map((item, index) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            
+            return (
+              <motion.button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+                  isActive
+                    ? 'bg-premium-dark-gray text-premium-gold'
+                    : 'text-premium-light-gray/70 hover:bg-premium-dark-gray/50 hover:text-premium-platinum'
+                }`}
+                whileHover={{ scale: 1.02, x: 2 }}
+                whileTap={{ scale: 0.98 }}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 + index * 0.05 }}
+              >
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                <AnimatePresence mode="wait">
+                  {!isCollapsed && (
+                    <motion.span
+                      className="font-medium text-sm ml-3"
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: 'auto' }}
+                      exit={{ opacity: 0, width: 0 }}
+                      transition={{ duration: 0.2 }}
+                      style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}
+                    >
+                      {item.label}
+                    </motion.span>
                   )}
-                </motion.button>
-              );
-            })}
-          </div>
+                </AnimatePresence>
+                {isActive && (
+                  <motion.div
+                    className="absolute left-0 top-0 bottom-0 w-1 bg-premium-gold rounded-r-full"
+                    layoutId="activeBottomTab"
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
+              </motion.button>
+            );
+          })}
         </div>
       </div>
     </motion.aside>

@@ -25,7 +25,7 @@ const RightPanel: React.FC = () => {
 
   return (
     <motion.div
-      className="w-80 bg-premium-dark/80 backdrop-blur-xl border-l border-white/10 p-6 space-y-6 overflow-y-auto"
+      className="w-80 bg-premium-dark border-l border-white/10 p-6 space-y-6 overflow-y-auto"
       initial={{ x: 300, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}

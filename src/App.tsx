@@ -7,6 +7,11 @@ import Sidebar from './components/Sidebar';
 import ChatWindow from './components/ChatWindow';
 import RightPanel from './components/RightPanel';
 import HomeView from './components/HomeView';
+import SettingsView from './components/SettingsView';
+import CalendarView from './components/CalendarView';
+import FilesView from './components/FilesView';
+import MemoryView from './components/MemoryView';
+import TasksView from './components/TasksView';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
@@ -25,7 +30,7 @@ const App: React.FC = () => {
         animate="animate"
         exit="exit"
         transition={{ duration: 0.3 }}
-        className="h-full bg-gradient-to-br from-premium-dark to-premium-dark-gray overflow-y-auto"
+        className="h-full bg-premium-dark overflow-y-auto"
       >
         <div className="max-w-4xl mx-auto px-6 py-16 flex flex-col items-center justify-center h-full">
           <div className="text-center space-y-6">
@@ -75,16 +80,73 @@ const App: React.FC = () => {
             <ChatWindow />
           </motion.div>
         );
-      case 'tasks':
-        return <PlaceholderView title="Tasks Management" description="Organize and track your tasks efficiently" />;
-      case 'memory':
-        return <PlaceholderView title="AI Memory" description="Your personal AI knowledge base" />;
-      case 'files':
-        return <PlaceholderView title="My Files" description="Access and manage your documents" />;
-      case 'calendar':
-        return <PlaceholderView title="Calendar" description="Schedule and manage your appointments" />;
       case 'settings':
-        return <PlaceholderView title="Settings" description="Customize your P.AI experience" />;
+        return (
+          <motion.div 
+            variants={contentVariants} 
+            initial="initial" 
+            animate="animate" 
+            exit="exit" 
+            transition={{ duration: 0.3 }}
+            className="h-full"
+          >
+            <SettingsView />
+          </motion.div>
+        );
+      case 'calendar':
+        return (
+          <motion.div 
+            variants={contentVariants} 
+            initial="initial" 
+            animate="animate" 
+            exit="exit" 
+            transition={{ duration: 0.3 }}
+            className="h-full"
+          >
+            <CalendarView />
+          </motion.div>
+        );
+      case 'files':
+        return (
+          <motion.div 
+            variants={contentVariants} 
+            initial="initial" 
+            animate="animate" 
+            exit="exit" 
+            transition={{ duration: 0.3 }}
+            className="h-full"
+          >
+            <FilesView />
+          </motion.div>
+        );
+      case 'memory':
+        return (
+          <motion.div 
+            variants={contentVariants} 
+            initial="initial" 
+            animate="animate" 
+            exit="exit" 
+            transition={{ duration: 0.3 }}
+            className="h-full"
+          >
+            <MemoryView />
+          </motion.div>
+        );
+      case 'tasks':
+        return (
+          <motion.div 
+            variants={contentVariants} 
+            initial="initial" 
+            animate="animate" 
+            exit="exit" 
+            transition={{ duration: 0.3 }}
+            className="h-full"
+          >
+            <TasksView />
+          </motion.div>
+        );
+      case 'help':
+        return <PlaceholderView title="Help & Support" description="Get help and support for P.AI" />;
       default:
         return (
           <motion.div 
@@ -103,11 +165,11 @@ const App: React.FC = () => {
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-premium-lighter-gray dark:bg-premium-dark font-inter">
+      <div className="min-h-screen bg-premium-dark font-inter">
         <Header />
         <div className="flex h-[calc(100vh-4rem)]">
           <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-          <main className="flex-1 overflow-hidden">
+          <main className="flex-1 overflow-hidden bg-premium-dark">
             <AnimatePresence mode="wait">
               {renderMainContent()}
             </AnimatePresence>
@@ -121,7 +183,7 @@ const App: React.FC = () => {
           toastOptions={{
             duration: 3000,
             style: {
-              background: 'rgba(26, 26, 26, 0.8)',
+              background: 'rgba(26, 26, 26, 0.9)',
               color: '#E5E4E2',
               backdropFilter: 'blur(12px)',
               border: '1px solid rgba(255, 255, 255, 0.1)',

@@ -88,7 +88,7 @@ const ChatWindow: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-premium-dark to-premium-dark-gray">
+    <div className="flex flex-col h-full bg-premium-dark">
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-4xl mx-auto space-y-8">
@@ -171,7 +171,7 @@ const ChatWindow: React.FC = () => {
       </div>
 
       {/* Input Area */}
-      <div className="bg-premium-dark/80 backdrop-blur-xl border-t border-white/10 p-6">
+      <div className="bg-premium-dark border-t border-white/10 p-6">
         <div className="max-w-4xl mx-auto">
           {messages.length <= 1 && (
             <div className="flex flex-wrap gap-3 justify-center mb-4">

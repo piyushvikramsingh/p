@@ -1,14 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '../contexts/ThemeContext';
-import { Sun, Moon, Settings, Bell, Search, MoreHorizontal } from 'lucide-react';
+import { Settings, Bell, Search, MoreHorizontal } from 'lucide-react';
 
 const Header: React.FC = () => {
-  const { isDark, toggleTheme } = useTheme();
-
   return (
     <motion.header 
-      className="h-16 bg-premium-lighter-gray/80 dark:bg-premium-dark/80 backdrop-blur-xl border-b border-black/10 dark:border-white/10 flex items-center justify-between px-6 sticky top-0 z-50"
+      className="h-16 bg-premium-dark/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-6 sticky top-0 z-50"
       initial={{ y: -50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -28,7 +25,7 @@ const Header: React.FC = () => {
           <h1 className="text-xl font-bold bg-gold-diamond-gradient bg-clip-text text-transparent">
             P.AI
           </h1>
-          <p className="text-xs text-gray-500 dark:text-premium-light-gray">Intelligent Assistant</p>
+          <p className="text-xs text-premium-light-gray">Intelligent Assistant</p>
         </div>
       </motion.div>
 
@@ -44,7 +41,7 @@ const Header: React.FC = () => {
           <input
             type="text"
             placeholder="Search conversations..."
-            className="w-full pl-10 pr-4 py-2 bg-gray-200 dark:bg-premium-dark-gray border border-black/10 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-premium-gold focus:border-transparent transition-all duration-200 text-sm placeholder:text-gray-500 dark:placeholder:text-premium-light-gray/50 text-gray-800 dark:text-premium-platinum"
+            className="w-full pl-10 pr-4 py-2 bg-premium-dark-gray border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-premium-gold focus:border-transparent transition-all duration-200 text-sm placeholder:text-premium-light-gray/50 text-premium-platinum"
           />
         </div>
       </motion.div>
@@ -60,37 +57,23 @@ const Header: React.FC = () => {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="relative p-2 rounded-xl hover:bg-gray-200 dark:hover:bg-premium-dark-gray transition-colors"
+          className="relative p-2 rounded-xl hover:bg-premium-dark-gray transition-colors"
         >
-          <Bell className="w-5 h-5 text-gray-600 dark:text-premium-light-gray" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-premium-dark"></span>
-        </motion.button>
-
-        {/* Theme Toggle */}
-        <motion.button
-          onClick={toggleTheme}
-          whileHover={{ scale: 1.05, rotate: 15 }}
-          whileTap={{ scale: 0.95 }}
-          className="p-2 rounded-xl hover:bg-gray-200 dark:hover:bg-premium-dark-gray transition-colors"
-        >
-          {isDark ? (
-            <Sun className="w-5 h-5 text-premium-gold" />
-          ) : (
-            <Moon className="w-5 h-5 text-gray-600" />
-          )}
+          <Bell className="w-5 h-5 text-premium-light-gray" />
+          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-premium-dark"></span>
         </motion.button>
 
         {/* Settings */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="p-2 rounded-xl hover:bg-gray-200 dark:hover:bg-premium-dark-gray transition-colors"
+          className="p-2 rounded-xl hover:bg-premium-dark-gray transition-colors"
         >
-          <Settings className="w-5 h-5 text-gray-600 dark:text-premium-light-gray" />
+          <Settings className="w-5 h-5 text-premium-light-gray" />
         </motion.button>
 
         {/* Divider */}
-        <div className="w-px h-6 bg-black/10 dark:bg-white/10 mx-2"></div>
+        <div className="w-px h-6 bg-white/10 mx-2"></div>
 
         {/* User Profile */}
         <motion.div 
@@ -104,12 +87,12 @@ const Header: React.FC = () => {
             </div>
           </div>
           <div className="hidden lg:block">
-            <p className="text-sm font-semibold text-gray-900 dark:text-premium-platinum group-hover:text-premium-gold transition-colors">
+            <p className="text-sm font-semibold text-premium-platinum group-hover:text-premium-gold transition-colors">
               Piyush
             </p>
-            <p className="text-xs text-gray-500 dark:text-premium-light-gray/70">Pro Plan</p>
+            <p className="text-xs text-premium-light-gray/70">Pro Plan</p>
           </div>
-          <MoreHorizontal className="w-4 h-4 text-gray-400 dark:text-premium-light-gray/50 group-hover:text-gray-600 dark:group-hover:text-premium-light-gray transition-colors" />
+          <MoreHorizontal className="w-4 h-4 text-premium-light-gray/50 group-hover:text-premium-light-gray transition-colors" />
         </motion.div>
       </motion.div>
     </motion.header>

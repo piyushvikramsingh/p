@@ -13,7 +13,7 @@ const HomeView: React.FC = () => {
   ];
 
   return (
-    <div className="h-full bg-gradient-to-br from-premium-dark to-premium-dark-gray overflow-y-auto">
+    <div className="h-full bg-premium-dark overflow-y-auto">
       <div className="max-w-4xl mx-auto px-6 py-8 flex flex-col items-center justify-center min-h-full">
         <motion.div
           className="space-y-8"
