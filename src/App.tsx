@@ -13,10 +13,12 @@ import MemoryView from './components/MemoryView';
 import TasksView from './components/TasksView';
 import AdminView from './components/admin/AdminView';
 import { useSettings } from './contexts/SettingsContext';
+import { useAuth } from './contexts/AuthContext';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const { brandingSettings } = useSettings();
+  const { user } = useAuth();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -24,6 +26,17 @@ const App: React.FC = () => {
     root.style.setProperty('--color-secondary', brandingSettings.secondaryColor);
   }, [brandingSettings.primaryColor, brandingSettings.secondaryColor]);
 
+  // Redirect to login if user is not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-premium-dark flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-premium-gold mx-auto mb-4"></div>
+          <p className="text-premium-light-gray">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const renderMainContent = () => {
     const contentVariants = {
@@ -162,19 +175,26 @@ const App: React.FC = () => {
           </motion.div>
         );
       case 'admin':
-        return (
-          <motion.div 
-            key="admin"
-            variants={contentVariants} 
-            initial="initial" 
-            animate="animate" 
-            exit="exit" 
-            transition={{ duration: 0.3 }}
-            className="h-full"
-          >
-            <AdminView />
-          </motion.div>
-        );
+        // Only show admin view for Super Admin users
+        if (user.role === 'Super Admin') {
+          return (
+            <motion.div 
+              key="admin"
+              variants={contentVariants} 
+              initial="initial" 
+              animate="animate" 
+              exit="exit" 
+              transition={{ duration: 0.3 }}
+              className="h-full"
+            >
+              <AdminView />
+            </motion.div>
+          );
+        } else {
+          // Redirect non-admin users
+          setActiveTab('home');
+          return null;
+        }
       case 'help':
         return <PlaceholderView title="Help & Support" description="Get help and support for P.AI" />;
       default:
