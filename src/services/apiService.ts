@@ -79,20 +79,21 @@ class APIService {
   private googleApiKey: string;
 
   constructor() {
-    this.claudeApiKey = process.env.REACT_APP_CLAUDE_API_KEY || '';
-    this.openaiApiKey = process.env.REACT_APP_OPENAI_API_KEY || '';
-    this.elevenLabsApiKey = process.env.REACT_APP_ELEVENLABS_API_KEY || '';
-    this.googleApiKey = process.env.REACT_APP_GOOGLE_API_KEY || '';
+    // Fixed: Use import.meta.env instead of process.env for Vite
+    this.claudeApiKey = import.meta.env.VITE_CLAUDE_API_KEY || '';
+    this.openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
+    this.elevenLabsApiKey = import.meta.env.VITE_ELEVENLABS_API_KEY || '';
+    this.googleApiKey = import.meta.env.VITE_GOOGLE_API_KEY || '';
   }
 
   // AI Chat Integration
   async sendMessageToClaude(message: string, conversationHistory: Message[] = []): Promise<string> {
     try {
+      if (!this.claudeApiKey) {
+        throw new Error('Claude API key not configured');
+      }
+
       const messages = [
-        {
-          role: 'system',
-          content: 'You are P.AI, a helpful, intelligent, and creative assistant. You can help with tasks, answer questions, generate content, and provide insights. Be concise but comprehensive in your responses.',
-        },
         ...conversationHistory.slice(-10).map(msg => ({
           role: msg.isUser ? 'user' : 'assistant',
           content: msg.content,
@@ -113,12 +114,14 @@ class APIService {
         body: JSON.stringify({
           model: 'claude-3-sonnet-20240229',
           max_tokens: 1000,
-          messages: messages.slice(1), // Remove system message for Claude
+          messages: messages,
+          system: 'You are P.AI, a helpful, intelligent, and creative assistant. You can help with tasks, answer questions, generate content, and provide insights. Be concise but comprehensive in your responses.',
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Claude API error: ${response.status}`);
+        const errorData = await response.text();
+        throw new Error(`Claude API error: ${response.status} - ${errorData}`);
       }
 
       const data = await response.json();
@@ -132,6 +135,10 @@ class APIService {
 
   async sendMessageToOpenAI(message: string, conversationHistory: Message[] = []): Promise<string> {
     try {
+      if (!this.openaiApiKey) {
+        throw new Error('OpenAI API key not configured');
+      }
+
       const messages = [
         {
           role: 'system',
@@ -161,7 +168,8 @@ class APIService {
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
+        const errorData = await response.text();
+        throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
       }
 
       const data = await response.json();
@@ -173,8 +181,12 @@ class APIService {
   }
 
   // Voice Generation
-  async generateVoice(text: string, voiceId: string = 'Rachel'): Promise<string> {
+  async generateVoice(text: string, voiceId: string = 'pNInz6obpgDQGcFmaJgB'): Promise<string> {
     try {
+      if (!this.elevenLabsApiKey) {
+        throw new Error('ElevenLabs API key not configured');
+      }
+
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
         method: 'POST',
         headers: {
@@ -208,6 +220,10 @@ class APIService {
   // Image Generation
   async generateImage(prompt: string, size: string = '1024x1024'): Promise<string> {
     try {
+      if (!this.openaiApiKey) {
+        throw new Error('OpenAI API key not configured');
+      }
+
       const response = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
         headers: {
@@ -224,7 +240,8 @@ class APIService {
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI Images API error: ${response.status}`);
+        const errorData = await response.text();
+        throw new Error(`OpenAI Images API error: ${response.status} - ${errorData}`);
       }
 
       const data = await response.json();
@@ -238,6 +255,10 @@ class APIService {
   // Speech-to-Text
   async transcribeAudio(audioBlob: Blob): Promise<string> {
     try {
+      if (!this.openaiApiKey) {
+        throw new Error('OpenAI API key not configured');
+      }
+
       const formData = new FormData();
       formData.append('file', audioBlob, 'audio.wav');
       formData.append('model', 'whisper-1');
@@ -251,7 +272,8 @@ class APIService {
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI Whisper API error: ${response.status}`);
+        const errorData = await response.text();
+        throw new Error(`OpenAI Whisper API error: ${response.status} - ${errorData}`);
       }
 
       const data = await response.json();
@@ -265,7 +287,8 @@ class APIService {
   // File Upload
   async uploadFile(file: File, userId: string, folder: string = 'uploads'): Promise<string> {
     try {
-      const fileRef = ref(storage, `${folder}/${userId}/${Date.now()}_${file.name}`);
+      const fileName = `${Date.now()}_${file.name}`;
+      const fileRef = ref(storage, `${folder}/${userId}/${fileName}`);
       await uploadBytes(fileRef, file);
       const downloadURL = await getDownloadURL(fileRef);
       return downloadURL;
@@ -473,8 +496,12 @@ class APIService {
       if (message.toLowerCase().includes('generate image') || message.toLowerCase().includes('create image') || message.toLowerCase().includes('draw')) {
         yield 'I\'ll generate an image for you... ';
         const imagePrompt = message.replace(/generate image|create image|draw/gi, '').trim();
-        const imageUrl = await this.generateImage(imagePrompt);
-        yield `\n\n![Generated Image](${imageUrl})`;
+        try {
+          const imageUrl = await this.generateImage(imagePrompt);
+          yield `\n\n![Generated Image](${imageUrl})`;
+        } catch (error) {
+          yield '\n\nSorry, I encountered an error generating the image.';
+        }
         return;
       }
 
@@ -496,7 +523,7 @@ class APIService {
       }
     } catch (error) {
       console.error('Error streaming response:', error);
-      throw error;
+      yield 'Sorry, I encountered an error processing your request.';
     }
   }
 }
