@@ -13,7 +13,7 @@ import {
   Calendar,
   Shield
 } from 'lucide-react';
-import { useUser } from '../contexts/UserContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
   activeTab: string;
@@ -22,7 +22,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { user } = useUser();
+  const { user } = useAuth();
 
   const menuItems = [
     { id: 'home', label: 'Home', icon: Home },
@@ -33,6 +33,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'calendar', label: 'Calendar', icon: Calendar },
   ];
 
+  // Only show admin panel for Super Admin role
   if (user?.role === 'Super Admin') {
     menuItems.push({ id: 'admin', label: 'Admin', icon: Shield });
   }
@@ -45,6 +46,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const handleNewChat = () => {
     setActiveTab('chat');
   };
+
+  if (!user) return null;
 
   return (
     <motion.aside
