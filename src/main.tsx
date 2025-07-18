@@ -3,22 +3,22 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import Root from './Root';
 import './index.css';
-import { UserProvider } from './contexts/UserContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AppProvider } from './contexts/AppContext';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { AuthProvider } from './contexts/AuthContext';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <ThemeProvider>
-        <AppProvider>
-          <SettingsProvider>
-            <UserProvider>
+        <SettingsProvider>
+          <AuthProvider>
+            <AppProvider>
               <Root />
-            </UserProvider>
-          </SettingsProvider>
-        </AppProvider>
+            </AppProvider>
+          </AuthProvider>
+        </SettingsProvider>
       </ThemeProvider>
     </BrowserRouter>
   </StrictMode>,
