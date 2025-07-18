@@ -1,6 +1,10 @@
+// src/components/ChatWindow.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, StopCircle, Copy, RefreshCw, ThumbsUp, ThumbsDown, Mic, Paperclip, Sparkles, User, Bot } from 'lucide-react';
+import { useUser } from '../contexts/UserContext';
+import { apiService } from '../services/apiService';
+import { toast } from 'react-hot-toast';
 
 interface Message {
   id: string;
@@ -12,10 +16,11 @@ interface Message {
 }
 
 const ChatWindow: React.FC = () => {
+  const { user } = useUser();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: 'Hello! I\'m P.AI. How can I assist you today?',
+      content: 'Hello! I\'m P.AI, your intelligent assistant. How can I help you today?',
       isUser: false,
       timestamp: new Date(),
     }
@@ -23,6 +28,8 @@ const ChatWindow: React.FC = () => {
   
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -37,40 +44,111 @@ const ChatWindow: React.FC = () => {
     }
   }, [inputValue]);
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+  // Initialize conversation when component mounts
+  useEffect(() => {
+    if (user && !currentConversationId) {
+      initializeConversation();
+    }
+  }, [user]);
 
-    const newMessage: Message = {
+  const initializeConversation = async () => {
+    if (!user) return;
+    
+    try {
+      const conversationId = await apiService.createConversation(
+        user.id,
+        'New Conversation'
+      );
+      setCurrentConversationId(conversationId);
+    } catch (error) {
+      console.error('Failed to initialize conversation:', error);
+      toast.error('Failed to start conversation');
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || !user || !currentConversationId) return;
+
+    const userMessage: Message = {
       id: Date.now().toString(),
       content: inputValue,
       isUser: true,
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, newMessage]);
+    setMessages(prev => [...prev, userMessage]);
     const currentInput = inputValue;
     setInputValue('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      const aiResponse: Message = {
+    try {
+      // Save user message to Firebase
+      await apiService.saveMessage(
+        currentInput,
+        true,
+        user.id,
+        currentConversationId
+      );
+
+      // Create AI response message
+      const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: `Thinking about "${currentInput}"...`,
+        content: '',
         isUser: false,
         timestamp: new Date(),
         isStreaming: true,
         reactions: { thumbsUp: false, thumbsDown: false }
       };
 
-      setMessages(prev => [...prev, aiResponse]);
+      setMessages(prev => [...prev, aiMessage]);
       setIsTyping(false);
+      setIsStreaming(true);
 
-      setTimeout(() => {
+      // Stream AI response
+      let fullResponse = '';
+      const stream = apiService.streamResponse(currentInput);
+      
+      for await (const chunk of stream) {
+        fullResponse += chunk;
         setMessages(prev => prev.map(msg => 
-          msg.id === aiResponse.id ? { ...msg, isStreaming: false, content: `Here are my thoughts on "${currentInput}". Let's break it down.` } : msg
+          msg.id === aiMessage.id 
+            ? { ...msg, content: fullResponse }
+            : msg
         ));
-      }, 1500);
-    }, 1000);
+      }
+
+      // Mark streaming as complete
+      setMessages(prev => prev.map(msg => 
+        msg.id === aiMessage.id 
+          ? { ...msg, isStreaming: false }
+          : msg
+      ));
+
+      // Save AI response to Firebase
+      await apiService.saveMessage(
+        fullResponse,
+        false,
+        user.id,
+        currentConversationId
+      );
+
+      setIsStreaming(false);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setIsTyping(false);
+      setIsStreaming(false);
+      
+      // Show error message
+      const errorMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        content: 'Sorry, I encountered an error. Please try again.',
+        isUser: false,
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+      toast.error('Failed to send message');
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -78,6 +156,25 @@ const ChatWindow: React.FC = () => {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleCopyMessage = (content: string) => {
+    navigator.clipboard.writeText(content);
+    toast.success('Message copied to clipboard');
+  };
+
+  const handleReaction = (messageId: string, reaction: 'thumbsUp' | 'thumbsDown') => {
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId && msg.reactions
+        ? { 
+            ...msg, 
+            reactions: {
+              ...msg.reactions,
+              [reaction]: !msg.reactions[reaction]
+            }
+          }
+        : msg
+    ));
   };
 
   const quickSuggestions = [
@@ -133,11 +230,32 @@ const ChatWindow: React.FC = () => {
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.5 }}
                     >
-                      {[Copy, RefreshCw, ThumbsUp, ThumbsDown].map((Icon, i) => (
-                        <button key={i} className="p-2 rounded-xl hover:bg-premium-dark-gray transition-colors">
-                          <Icon className="w-4 h-4 text-premium-light-gray/50 hover:text-premium-light-gray" />
-                        </button>
-                      ))}
+                      <button 
+                        onClick={() => handleCopyMessage(message.content)}
+                        className="p-2 rounded-xl hover:bg-premium-dark-gray transition-colors"
+                      >
+                        <Copy className="w-4 h-4 text-premium-light-gray/50 hover:text-premium-light-gray" />
+                      </button>
+                      <button 
+                        onClick={() => handleReaction(message.id, 'thumbsUp')}
+                        className="p-2 rounded-xl hover:bg-premium-dark-gray transition-colors"
+                      >
+                        <ThumbsUp className={`w-4 h-4 ${
+                          message.reactions?.thumbsUp 
+                            ? 'text-premium-gold' 
+                            : 'text-premium-light-gray/50 hover:text-premium-light-gray'
+                        }`} />
+                      </button>
+                      <button 
+                        onClick={() => handleReaction(message.id, 'thumbsDown')}
+                        className="p-2 rounded-xl hover:bg-premium-dark-gray transition-colors"
+                      >
+                        <ThumbsDown className={`w-4 h-4 ${
+                          message.reactions?.thumbsDown 
+                            ? 'text-red-400' 
+                            : 'text-premium-light-gray/50 hover:text-premium-light-gray'
+                        }`} />
+                      </button>
                     </motion.div>
                   )}
                 </div>
@@ -194,26 +312,39 @@ const ChatWindow: React.FC = () => {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Message P.AI..."
-              className="w-full pl-6 pr-32 py-4 bg-premium-dark-gray border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-premium-gold focus:border-transparent text-premium-platinum placeholder-premium-light-gray/50 resize-none overflow-hidden shadow-lg"
+              disabled={isStreaming}
+              className="w-full pl-6 pr-32 py-4 bg-premium-dark-gray border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-premium-gold focus:border-transparent text-premium-platinum placeholder-premium-light-gray/50 resize-none overflow-hidden shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               rows={1}
               style={{ minHeight: '56px', maxHeight: '140px' }}
             />
             
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-              <motion.button className="p-2 rounded-xl text-premium-light-gray/70 hover:text-premium-platinum hover:bg-premium-medium-gray transition-all" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <motion.button 
+                className="p-2 rounded-xl text-premium-light-gray/70 hover:text-premium-platinum hover:bg-premium-medium-gray transition-all" 
+                whileHover={{ scale: 1.05 }} 
+                whileTap={{ scale: 0.95 }}
+              >
                 <Mic className="w-5 h-5" />
               </motion.button>
-              <motion.button className="p-2 rounded-xl text-premium-light-gray/70 hover:text-premium-platinum hover:bg-premium-medium-gray transition-all" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <motion.button 
+                className="p-2 rounded-xl text-premium-light-gray/70 hover:text-premium-platinum hover:bg-premium-medium-gray transition-all" 
+                whileHover={{ scale: 1.05 }} 
+                whileTap={{ scale: 0.95 }}
+              >
                 <Paperclip className="w-5 h-5" />
               </motion.button>
               <motion.button
                 onClick={handleSendMessage}
-                disabled={!inputValue.trim()}
+                disabled={!inputValue.trim() || isStreaming}
                 className="p-2 rounded-xl bg-premium-gold hover:opacity-90 disabled:bg-premium-medium-gray disabled:cursor-not-allowed text-black shadow-lg shadow-premium-gold/30 transition-all disabled:opacity-50"
-                whileHover={{ scale: inputValue.trim() ? 1.05 : 1 }}
-                whileTap={{ scale: inputValue.trim() ? 0.95 : 1 }}
+                whileHover={{ scale: inputValue.trim() && !isStreaming ? 1.05 : 1 }}
+                whileTap={{ scale: inputValue.trim() && !isStreaming ? 0.95 : 1 }}
               >
-                <Send className="w-5 h-5" />
+                {isStreaming ? (
+                  <StopCircle className="w-5 h-5" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
               </motion.button>
             </div>
           </div>
