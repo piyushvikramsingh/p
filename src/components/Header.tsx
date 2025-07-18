@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Bell, Search, MoreHorizontal, User, LogOut, MessageSquare } from 'lucide-react';
-import { useUser } from '../contexts/UserContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import { useSettings } from '../contexts/SettingsContext';
 
 const Header: React.FC = () => {
-  const { user, logout } = useUser();
+  const { user, logout } = useAuth();
   const { notifications, markNotificationsAsRead } = useApp();
   const { brandingSettings } = useSettings();
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
@@ -22,6 +22,17 @@ const Header: React.FC = () => {
       markNotificationsAsRead();
     }
   };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const userInitials = getInitials(user.name);
 
   return (
     <motion.header 
@@ -41,7 +52,7 @@ const Header: React.FC = () => {
             {brandingSettings.logoUrl ? (
               <img src={brandingSettings.logoUrl} alt="Logo" className="w-6 h-6 object-contain" />
             ) : (
-              <span className="text-black font-bold text-sm">{user.avatarInitial}</span>
+              <span className="text-black font-bold text-sm">{userInitials.charAt(0)}</span>
             )}
           </div>
         </div>
@@ -128,7 +139,6 @@ const Header: React.FC = () => {
           </AnimatePresence>
         </div>
 
-
         {/* Settings */}
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -151,7 +161,11 @@ const Header: React.FC = () => {
           >
             <div className="relative">
               <div className="w-9 h-9 bg-gold-diamond-gradient rounded-full flex items-center justify-center shadow-md shadow-premium-gold/20">
-                <span className="text-black font-semibold text-sm">{user.avatarInitial}</span>
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={user.name} className="w-9 h-9 rounded-full object-cover" />
+                ) : (
+                  <span className="text-black font-semibold text-sm">{userInitials}</span>
+                )}
               </div>
             </div>
             <div className="hidden lg:block">
