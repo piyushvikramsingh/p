@@ -1,10 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { MessageSquare, Zap, Code, Lightbulb, TrendingUp, BookOpen, ArrowRight, Sparkles } from 'lucide-react';
-import { useUser } from '../contexts/UserContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const HomeView: React.FC = () => {
-  const { user } = useUser();
+  const { user } = useAuth();
+  
   const suggestions = [
     { title: 'Explain quantum computing', icon: Zap },
     { title: 'Write a React component', icon: Code },
@@ -15,6 +16,25 @@ const HomeView: React.FC = () => {
   ];
 
   if (!user) return null;
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const userInitials = getInitials(user.name);
+  const firstName = user.name.split(' ')[0];
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
 
   return (
     <div className="h-full bg-premium-dark overflow-y-auto">
@@ -31,7 +51,15 @@ const HomeView: React.FC = () => {
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           >
             <div className="w-24 h-24 bg-gold-diamond-gradient rounded-3xl flex items-center justify-center shadow-2xl shadow-premium-gold/20">
-              <span className="text-black font-bold text-4xl">{user.avatarInitial}</span>
+              {user.avatarUrl ? (
+                <img 
+                  src={user.avatarUrl} 
+                  alt={user.name} 
+                  className="w-24 h-24 rounded-3xl object-cover"
+                />
+              ) : (
+                <span className="text-black font-bold text-4xl">{userInitials}</span>
+              )}
             </div>
             <div className="absolute -top-2 -right-2 w-8 h-8 bg-premium-diamond rounded-full flex items-center justify-center shadow-lg">
               <Sparkles className="w-4 h-4 text-black" />
@@ -45,7 +73,7 @@ const HomeView: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              Good morning, {user.name.split(' ')[0]}!
+              {getGreeting()}, {firstName}!
             </motion.h1>
             <motion.p 
               className="text-premium-light-gray/70 text-xl"
@@ -76,6 +104,10 @@ const HomeView: React.FC = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6 + index * 0.05 }}
+                  onClick={() => {
+                    // This could integrate with a chat function later
+                    console.log('Clicked suggestion:', suggestion.title);
+                  }}
                 >
                   <div className="relative z-10">
                     <div className="flex items-center justify-between">
@@ -91,14 +123,28 @@ const HomeView: React.FC = () => {
           </div>
         </motion.div>
 
-        <motion.p
-          className="text-premium-light-gray/50 text-sm mt-12"
+        <motion.div
+          className="mt-12 text-center space-y-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
         >
-          P.AI can make mistakes. Consider checking important information.
-        </motion.p>
+          <p className="text-premium-light-gray/50 text-sm">
+            P.AI can make mistakes. Consider checking important information.
+          </p>
+          
+          {user.role === 'Super Admin' && (
+            <motion.div
+              className="inline-flex items-center px-4 py-2 bg-premium-gold/10 border border-premium-gold/30 rounded-xl"
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 1.2 }}
+            >
+              <Sparkles className="w-4 h-4 text-premium-gold mr-2" />
+              <span className="text-premium-gold font-medium text-sm">Admin Access Enabled</span>
+            </motion.div>
+          )}
+        </motion.div>
       </div>
     </div>
   );
