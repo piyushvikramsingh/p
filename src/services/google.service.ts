@@ -1,5 +1,4 @@
 // src/services/google.service.ts
-import { gapi } from 'gapi-script';
 
 // Google API Configuration
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -20,6 +19,13 @@ const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.profile',
   'https://www.googleapis.com/auth/user.emails.read'
 ].join(' ');
+
+// Declare gapi types
+declare global {
+  interface Window {
+    gapi: any;
+  }
+}
 
 export interface DriveFile {
   id: string;
@@ -146,6 +152,27 @@ class GoogleService {
   private driveFileCache = new Map<string, DriveFile>();
   private calendarEventCache = new Map<string, CalendarEvent>();
   private gmailMessageCache = new Map<string, GmailMessage>();
+  private gapi: any = null;
+
+  // Load Google API script
+  private async loadGapi(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (window.gapi) {
+        this.gapi = window.gapi;
+        resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://apis.google.com/js/api.js';
+      script.onload = () => {
+        this.gapi = window.gapi;
+        resolve();
+      };
+      script.onerror = () => reject(new Error('Failed to load Google API script'));
+      document.head.appendChild(script);
+    });
+  }
 
   // Initialize Google API
   async init(): Promise<void> {
@@ -155,57 +182,66 @@ class GoogleService {
       throw new Error('Missing Google API configuration. Please check your environment variables.');
     }
 
-    return new Promise((resolve, reject) => {
-      gapi.load('client:auth2', async () => {
-        try {
-          await gapi.client.init({
-            apiKey: API_KEY,
-            clientId: CLIENT_ID,
-            discoveryDocs: DISCOVERY_DOCS,
-            scope: SCOPES
-          });
-          
-          this.isInitialized = true;
-          resolve();
-        } catch (error: any) {
-          const message = error.result?.error?.message || error.message;
-          console.error('Google API initialization failed:', message);
-          reject(new Error(`Failed to initialize Google API: ${message}`));
-        }
+    try {
+      await this.loadGapi();
+      
+      return new Promise((resolve, reject) => {
+        this.gapi.load('client:auth2', async () => {
+          try {
+            await this.gapi.client.init({
+              apiKey: API_KEY,
+              clientId: CLIENT_ID,
+              discoveryDocs: DISCOVERY_DOCS,
+              scope: SCOPES
+            });
+            
+            this.isInitialized = true;
+            resolve();
+          } catch (error: any) {
+            const message = error.result?.error?.message || error.message;
+            console.error('Google API initialization failed:', message);
+            reject(new Error(`Failed to initialize Google API: ${message}`));
+          }
+        });
       });
-    });
+    } catch (error) {
+      console.error('Failed to load Google API:', error);
+      throw error;
+    }
   }
 
   // Set access token from Firebase Auth
   setAccessToken(token: string) {
     this.accessToken = token;
-    if (gapi.client && token) {
-      gapi.client.setToken({ access_token: token });
+    if (this.gapi?.client && token) {
+      this.gapi.client.setToken({ access_token: token });
     }
   }
 
   // Check if user is signed in
   isSignedIn(): boolean {
-    if (!this.isInitialized) return false;
-    return gapi.auth2.getAuthInstance().isSignedIn.get();
+    if (!this.isInitialized || !this.gapi) return false;
+    return this.gapi.auth2.getAuthInstance().isSignedIn.get();
   }
 
   // Sign in with Google (if not using Firebase Auth)
   async signIn(): Promise<void> {
     if (!this.isInitialized) await this.init();
-    await gapi.auth2.getAuthInstance().signIn();
+    await this.gapi.auth2.getAuthInstance().signIn();
   }
 
   // Sign out
   async signOut(): Promise<void> {
-    if (!this.isInitialized) return;
-    await gapi.auth2.getAuthInstance().signOut();
+    if (!this.isInitialized || !this.gapi) return;
+    await this.gapi.auth2.getAuthInstance().signOut();
     this.clearCache();
   }
 
   // Cleanup resources
   destroy() {
-    gapi.client.setToken(null);
+    if (this.gapi?.client) {
+      this.gapi.client.setToken(null);
+    }
     this.accessToken = null;
     this.clearCache();
   }
@@ -230,7 +266,7 @@ class GoogleService {
     throw new Error(`Google API ${method} failed: ${message}`);
   }
 
-  // Google Drive Methods
+  // Google Drive Methods using fetch instead of gapi for better reliability
   async getDriveFiles(options?: {
     pageSize?: number;
     orderBy?: string;
@@ -239,126 +275,76 @@ class GoogleService {
     fields?: string;
   }): Promise<{ files: DriveFile[]; nextPageToken?: string }> {
     try {
+      if (!this.accessToken) {
+        throw new Error('No access token available');
+      }
+
       await this.throttleRequest();
-      const response = await gapi.client.drive.files.list({
-        pageSize: options?.pageSize || 20,
+      
+      const params = new URLSearchParams({
+        pageSize: (options?.pageSize || 20).toString(),
         orderBy: options?.orderBy || 'modifiedTime desc',
         q: options?.q || "trashed = false",
-        fields: options?.fields || 'nextPageToken, files(id, name, mimeType, size, modifiedTime, webViewLink, thumbnailLink, iconLink, parents, starred, shared, permissions)',
-        pageToken: options?.pageToken
+        fields: options?.fields || 'nextPageToken, files(id, name, mimeType, size, modifiedTime, webViewLink, thumbnailLink, iconLink, parents, starred, shared)',
+        ...(options?.pageToken && { pageToken: options.pageToken })
       });
 
+      const response = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Drive API error: ${response.status} - ${errorData}`);
+      }
+
+      const data = await response.json();
+
       // Cache the files
-      response.result.files?.forEach(file => {
+      data.files?.forEach((file: DriveFile) => {
         if (file.id) this.driveFileCache.set(file.id, file);
       });
 
       return {
-        files: response.result.files || [],
-        nextPageToken: response.result.nextPageToken
+        files: data.files || [],
+        nextPageToken: data.nextPageToken
       };
     } catch (error) {
       this.handleApiError('getDriveFiles', error);
     }
   }
 
-  async getAllDriveFiles(query: string = "trashed = false"): Promise<DriveFile[]> {
-    let allFiles: DriveFile[] = [];
-    let pageToken: string | undefined;
-
-    do {
-      const result = await this.getDriveFiles({
-        q: query,
-        pageSize: 100,
-        pageToken
-      });
-      allFiles = [...allFiles, ...result.files];
-      pageToken = result.nextPageToken;
-    } while (pageToken);
-
-    return allFiles;
-  }
-
   async searchDriveFiles(query: string): Promise<DriveFile[]> {
     try {
+      if (!this.accessToken) {
+        throw new Error('No access token available');
+      }
+
       await this.throttleRequest();
-      const response = await gapi.client.drive.files.list({
+      
+      const params = new URLSearchParams({
         q: `name contains '${query}' and trashed = false`,
-        pageSize: 50,
+        pageSize: '50',
         fields: 'files(id, name, mimeType, size, modifiedTime, webViewLink, thumbnailLink, iconLink, parents, starred, shared)'
       });
 
-      return response.result.files || [];
-    } catch (error) {
-      this.handleApiError('searchDriveFiles', error);
-    }
-  }
-
-  async getFileContent(fileId: string): Promise<string> {
-    try {
-      await this.throttleRequest();
-      const response = await gapi.client.drive.files.get({
-        fileId: fileId,
-        alt: 'media'
+      const response = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
       });
 
-      return response.body;
-    } catch (error) {
-      this.handleApiError('getFileContent', error);
-    }
-  }
-
-  async getFileMetadata(fileId: string, forceRefresh = false): Promise<DriveFile> {
-    if (!forceRefresh && this.driveFileCache.has(fileId)) {
-      return this.driveFileCache.get(fileId)!;
-    }
-
-    try {
-      await this.throttleRequest();
-      const response = await gapi.client.drive.files.get({
-        fileId: fileId,
-        fields: 'id, name, mimeType, size, modifiedTime, webViewLink, thumbnailLink, iconLink, parents, starred, shared, permissions'
-      });
-
-      this.driveFileCache.set(fileId, response.result);
-      return response.result;
-    } catch (error) {
-      this.handleApiError('getFileMetadata', error);
-    }
-  }
-
-  async batchGetDriveFiles(fileIds: string[]): Promise<DriveFile[]> {
-    try {
-      await this.throttleRequest();
-      const batch = gapi.client.newBatch();
-      const results: DriveFile[] = [];
-
-      fileIds.forEach(fileId => {
-        if (this.driveFileCache.has(fileId)) {
-          results.push(this.driveFileCache.get(fileId)!);
-        } else {
-          batch.add(gapi.client.drive.files.get({
-            fileId: fileId,
-            fields: 'id, name, mimeType, size, modifiedTime, webViewLink, thumbnailLink, iconLink, parents, starred'
-          }));
-        }
-      });
-
-      if (batch.requests.length > 0) {
-        const batchResponse = await batch.execute();
-        Object.values(batchResponse.result).forEach((response: any) => {
-          if (response.status === 200) {
-            results.push(response.result);
-            if (response.result.id) {
-              this.driveFileCache.set(response.result.id, response.result);
-            }
-          }
-        });
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Drive API error: ${response.status} - ${errorData}`);
       }
 
-      return results;
+      const data = await response.json();
+      return data.files || [];
     } catch (error) {
-      this.handleApiError('batchGetDriveFiles', error);
+      this.handleApiError('searchDriveFiles', error);
     }
   }
 
@@ -373,87 +359,43 @@ class GoogleService {
     q?: string;
   }): Promise<CalendarEvent[]> {
     try {
+      if (!this.accessToken) {
+        throw new Error('No access token available');
+      }
+
       await this.throttleRequest();
-      const response = await gapi.client.calendar.events.list({
+      
+      const params = new URLSearchParams({
         calendarId: options?.calendarId || 'primary',
         timeMin: options?.timeMin?.toISOString() || new Date().toISOString(),
         timeMax: options?.timeMax?.toISOString() || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        maxResults: options?.maxResults || 250,
-        singleEvents: options?.singleEvents !== false,
+        maxResults: (options?.maxResults || 250).toString(),
+        singleEvents: (options?.singleEvents !== false).toString(),
         orderBy: options?.orderBy || 'startTime',
-        q: options?.q
+        ...(options?.q && { q: options.q })
       });
 
+      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Calendar API error: ${response.status} - ${errorData}`);
+      }
+
+      const data = await response.json();
+
       // Cache the events
-      response.result.items?.forEach(event => {
+      data.items?.forEach((event: CalendarEvent) => {
         if (event.id) this.calendarEventCache.set(event.id, event);
       });
 
-      return response.result.items || [];
+      return data.items || [];
     } catch (error) {
       this.handleApiError('getCalendarEvents', error);
-    }
-  }
-
-  async getAllCalendarEvents(calendarId = 'primary', timeRange = 90): Promise<CalendarEvent[]> {
-    const timeMin = new Date();
-    const timeMax = new Date();
-    timeMax.setDate(timeMax.getDate() + timeRange);
-
-    let allEvents: CalendarEvent[] = [];
-    let pageToken: string | undefined;
-
-    do {
-      const response = await gapi.client.calendar.events.list({
-        calendarId,
-        timeMin: timeMin.toISOString(),
-        timeMax: timeMax.toISOString(),
-        maxResults: 2500,
-        singleEvents: true,
-        orderBy: 'startTime',
-        pageToken
-      });
-
-      allEvents = [...allEvents, ...(response.result.items || [])];
-      pageToken = response.result.nextPageToken;
-    } while (pageToken);
-
-    return allEvents;
-  }
-
-  async getEvent(eventId: string, calendarId: string = 'primary', forceRefresh = false): Promise<CalendarEvent> {
-    if (!forceRefresh && this.calendarEventCache.has(eventId)) {
-      return this.calendarEventCache.get(eventId)!;
-    }
-
-    try {
-      await this.throttleRequest();
-      const response = await gapi.client.calendar.events.get({
-        calendarId,
-        eventId
-      });
-
-      this.calendarEventCache.set(eventId, response.result);
-      return response.result;
-    } catch (error) {
-      this.handleApiError('getEvent', error);
-    }
-  }
-
-  async getCalendarList(): Promise<Array<{
-    id: string;
-    summary: string;
-    description?: string;
-    backgroundColor?: string;
-    foregroundColor?: string;
-    primary?: boolean;
-  }>> {
-    try {
-      await this.throttleRequest();
-      const response = await gapi.client.calendar.calendarList.list();
-      return response.result.items || [];
-    } catch (error) {
-      this.handleApiError('getCalendarList', error);
     }
   }
 
@@ -466,51 +408,51 @@ class GoogleService {
     includeBody?: boolean;
   }): Promise<{ messages: GmailMessage[]; nextPageToken?: string }> {
     try {
+      if (!this.accessToken) {
+        throw new Error('No access token available');
+      }
+
       await this.throttleRequest();
-      const response = await gapi.client.gmail.users.messages.list({
-        userId: 'me',
+      
+      const params = new URLSearchParams({
         q: options?.q || 'is:unread',
-        maxResults: options?.maxResults || 20,
-        pageToken: options?.pageToken,
-        labelIds: options?.labelIds
+        maxResults: (options?.maxResults || 20).toString(),
+        ...(options?.pageToken && { pageToken: options.pageToken }),
+        ...(options?.labelIds && { labelIds: options.labelIds.join(',') })
       });
 
-      if (!response.result.messages) {
+      const response = await fetch(`https://www.googleapis.com/gmail/v1/users/me/messages?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Gmail API error: ${response.status} - ${errorData}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.messages) {
         return { messages: [] };
       }
 
       // Get full message details
       const messages = await Promise.all(
-        response.result.messages.map(async (message) => {
-          const details = await this.getGmailMessage(message.id!, options?.includeBody);
+        data.messages.map(async (message: any) => {
+          const details = await this.getGmailMessage(message.id, options?.includeBody);
           return details;
         })
       );
 
       return {
         messages,
-        nextPageToken: response.result.nextPageToken
+        nextPageToken: data.nextPageToken
       };
     } catch (error) {
       this.handleApiError('getGmailMessages', error);
     }
-  }
-
-  async getAllGmailMessages(query: string = 'is:inbox'): Promise<GmailMessage[]> {
-    let allMessages: GmailMessage[] = [];
-    let pageToken: string | undefined;
-
-    do {
-      const result = await this.getGmailMessages({
-        q: query,
-        maxResults: 100,
-        pageToken
-      });
-      allMessages = [...allMessages, ...result.messages];
-      pageToken = result.nextPageToken;
-    } while (pageToken);
-
-    return allMessages;
   }
 
   async getGmailMessage(messageId: string, includeBody = false): Promise<GmailMessage> {
@@ -519,33 +461,49 @@ class GoogleService {
     }
 
     try {
+      if (!this.accessToken) {
+        throw new Error('No access token available');
+      }
+
       await this.throttleRequest();
-      const response = await gapi.client.gmail.users.messages.get({
-        userId: 'me',
-        id: messageId,
+      
+      const params = new URLSearchParams({
         format: includeBody ? 'full' : 'metadata',
-        metadataHeaders: ['From', 'To', 'Subject', 'Date']
+        metadataHeaders: 'From,To,Subject,Date'
       });
 
-      const headers = response.result.payload.headers || [];
-      const getHeader = (name: string) => headers.find(h => h.name === name)?.value || '';
+      const response = await fetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Gmail API error: ${response.status} - ${errorData}`);
+      }
+
+      const data = await response.json();
+
+      const headers = data.payload.headers || [];
+      const getHeader = (name: string) => headers.find((h: any) => h.name === name)?.value || '';
 
       const message: GmailMessage = {
-        id: response.result.id!,
-        threadId: response.result.threadId!,
-        snippet: response.result.snippet!,
+        id: data.id,
+        threadId: data.threadId,
+        snippet: data.snippet,
         from: getHeader('From'),
         to: getHeader('To'),
         subject: getHeader('Subject'),
         date: getHeader('Date'),
-        labelIds: response.result.labelIds,
-        isUnread: response.result.labelIds?.includes('UNREAD') || false,
-        hasAttachments: response.result.payload.parts?.some(part => part.filename) || false
+        labelIds: data.labelIds,
+        isUnread: data.labelIds?.includes('UNREAD') || false,
+        hasAttachments: data.payload.parts?.some((part: any) => part.filename) || false
       };
 
       if (includeBody) {
-        message.body = this.extractEmailBody(response.result);
-        message.attachments = this.extractAttachments(response.result);
+        message.body = this.extractEmailBody(data);
+        message.attachments = this.extractAttachments(data);
       }
 
       this.gmailMessageCache.set(messageId, message);
@@ -597,109 +555,6 @@ class GoogleService {
       }));
   }
 
-  async searchGmail(query: string): Promise<GmailMessage[]> {
-    const result = await this.getGmailMessages({ q: query, maxResults: 50 });
-    return result.messages;
-  }
-
-  async getGmailLabels(): Promise<Array<{
-    id: string;
-    name: string;
-    type: 'system' | 'user';
-    messagesTotal?: number;
-    messagesUnread?: number;
-  }>> {
-    try {
-      await this.throttleRequest();
-      const response = await gapi.client.gmail.users.labels.list({
-        userId: 'me'
-      });
-
-      return response.result.labels || [];
-    } catch (error) {
-      this.handleApiError('getGmailLabels', error);
-    }
-  }
-
-  async sendEmail(raw: string): Promise<void> {
-    try {
-      await this.throttleRequest();
-      await gapi.client.gmail.users.messages.send({
-        userId: 'me',
-        resource: { raw }
-      });
-    } catch (error) {
-      this.handleApiError('sendEmail', error);
-    }
-  }
-
-  // Google Contacts Methods
-  async getContacts(options?: {
-    pageSize?: number;
-    pageToken?: string;
-  }): Promise<{ contacts: GoogleContact[]; nextPageToken?: string }> {
-    try {
-      await this.throttleRequest();
-      const response = await gapi.client.people.people.connections.list({
-        resourceName: 'people/me',
-        pageSize: options?.pageSize || 100,
-        pageToken: options?.pageToken,
-        personFields: 'names,emailAddresses,phoneNumbers,photos'
-      });
-
-      return {
-        contacts: response.result.connections || [],
-        nextPageToken: response.result.nextPageToken
-      };
-    } catch (error) {
-      this.handleApiError('getContacts', error);
-    }
-  }
-
-  async getAllContacts(): Promise<GoogleContact[]> {
-    let allContacts: GoogleContact[] = [];
-    let pageToken: string | undefined;
-
-    do {
-      const result = await this.getContacts({
-        pageSize: 100,
-        pageToken
-      });
-      allContacts = [...allContacts, ...result.contacts];
-      pageToken = result.nextPageToken;
-    } while (pageToken);
-
-    return allContacts;
-  }
-
-  // Google Tasks Methods
-  async getTaskLists(): Promise<Array<{
-    id: string;
-    title: string;
-    updated: string;
-  }>> {
-    try {
-      await this.throttleRequest();
-      const response = await gapi.client.tasks.tasklists.list();
-      return response.result.items || [];
-    } catch (error) {
-      this.handleApiError('getTaskLists', error);
-    }
-  }
-
-  async getTasks(taskListId: string): Promise<GoogleTask[]> {
-    try {
-      await this.throttleRequest();
-      const response = await gapi.client.tasks.tasks.list({
-        tasklist: taskListId
-      });
-
-      return response.result.items || [];
-    } catch (error) {
-      this.handleApiError('getTasks', error);
-    }
-  }
-
   // Utility Methods
   formatFileSize(bytes: string | number): string {
     const size = typeof bytes === 'string' ? parseInt(bytes) : bytes;
@@ -736,27 +591,18 @@ class GoogleService {
     return typeMap[mimeType] || '📎';
   }
 
-  // User Profile Methods
-  async getUserProfile(): Promise<{
-    displayName?: string;
-    email?: string;
-    photoUrl?: string;
-  }> {
-    try {
-      await this.throttleRequest();
-      const response = await gapi.client.people.people.get({
-        resourceName: 'people/me',
-        personFields: 'names,emailAddresses,photos'
-      });
+  // Check if the service is ready
+  isReady(): boolean {
+    return this.isInitialized && !!this.accessToken;
+  }
 
-      return {
-        displayName: response.result.names?.[0]?.displayName,
-        email: response.result.emailAddresses?.[0]?.value,
-        photoUrl: response.result.photos?.[0]?.url
-      };
-    } catch (error) {
-      this.handleApiError('getUserProfile', error);
-    }
+  // Get service status
+  getStatus(): { initialized: boolean; hasToken: boolean; signedIn: boolean } {
+    return {
+      initialized: this.isInitialized,
+      hasToken: !!this.accessToken,
+      signedIn: this.isSignedIn()
+    };
   }
 }
 
