@@ -1,16 +1,18 @@
 // src/services/ai.service.ts
 import axios from 'axios';
-import OpenAI from 'openai';
 
 // Claude API Configuration
 const CLAUDE_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY;
 const CLAUDE_API_URL = import.meta.env.VITE_CLAUDE_API_URL || 'https://api.anthropic.com/v1/messages';
+const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 
-// OpenAI Configuration
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true // Only for development
-});
+// Window type declarations for TypeScript
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
+}
 
 // Claude API Service
 export class ClaudeService {
@@ -28,6 +30,10 @@ Always be helpful, accurate, and considerate of the user's needs. If you're unsu
 
   async sendMessage(message: string, context?: any): Promise<string> {
     try {
+      if (!CLAUDE_API_KEY) {
+        throw new Error('Claude API key not configured');
+      }
+
       // Add user message to history
       this.conversationHistory.push({ role: 'user', content: message });
 
@@ -35,7 +41,7 @@ Always be helpful, accurate, and considerate of the user's needs. If you're unsu
       const response = await axios.post(
         CLAUDE_API_URL,
         {
-          model: 'claude-3-opus-20240229',
+          model: 'claude-3-sonnet-20240229',
           messages: this.conversationHistory,
           system: this.systemPrompt,
           max_tokens: 4096,
@@ -62,9 +68,10 @@ Always be helpful, accurate, and considerate of the user's needs. If you're unsu
       }
 
       return assistantMessage;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Claude API Error:', error);
-      throw new Error('Failed to get response from AI');
+      const errorMessage = error.response?.data?.error?.message || error.message || 'Failed to get response from AI';
+      throw new Error(errorMessage);
     }
   }
 
@@ -81,7 +88,7 @@ Always be helpful, accurate, and considerate of the user's needs. If you're unsu
   }
 }
 
-// Image Generation Service
+// Image Generation Service using fetch instead of OpenAI library
 export class ImageGenerationService {
   async generateImage(prompt: string, options?: {
     size?: '256x256' | '512x512' | '1024x1024' | '1792x1024' | '1024x1792';
@@ -90,39 +97,68 @@ export class ImageGenerationService {
     n?: number;
   }): Promise<string[]> {
     try {
-      const response = await openai.images.generate({
-        model: 'dall-e-3',
-        prompt,
-        n: options?.n || 1,
-        size: options?.size || '1024x1024',
-        quality: options?.quality || 'standard',
-        style: options?.style || 'vivid'
+      if (!OPENAI_API_KEY) {
+        throw new Error('OpenAI API key not configured');
+      }
+
+      const response = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'dall-e-3',
+          prompt,
+          n: options?.n || 1,
+          size: options?.size || '1024x1024',
+          quality: options?.quality || 'standard',
+          style: options?.style || 'vivid'
+        })
       });
 
-      return response.data.map(image => image.url || '');
-    } catch (error) {
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Image generation failed: ${response.status} - ${errorData}`);
+      }
+
+      const data = await response.json();
+      return data.data.map((image: any) => image.url || '');
+    } catch (error: any) {
       console.error('Image Generation Error:', error);
-      throw new Error('Failed to generate image');
+      throw new Error(error.message || 'Failed to generate image');
     }
   }
 
-  async createVariation(imageUrl: string, n: number = 1): Promise<string[]> {
+  async createVariation(imageFile: File, n: number = 1): Promise<string[]> {
     try {
-      // First, fetch the image as a blob
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const file = new File([blob], 'image.png', { type: 'image/png' });
+      if (!OPENAI_API_KEY) {
+        throw new Error('OpenAI API key not configured');
+      }
 
-      const variationResponse = await openai.images.createVariation({
-        image: file,
-        n,
-        size: '1024x1024'
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      formData.append('n', n.toString());
+      formData.append('size', '1024x1024');
+
+      const response = await fetch('https://api.openai.com/v1/images/variations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
+        body: formData
       });
 
-      return variationResponse.data.map(image => image.url || '');
-    } catch (error) {
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Image variation failed: ${response.status} - ${errorData}`);
+      }
+
+      const data = await response.json();
+      return data.data.map((image: any) => image.url || '');
+    } catch (error: any) {
       console.error('Image Variation Error:', error);
-      throw new Error('Failed to create image variation');
+      throw new Error(error.message || 'Failed to create image variation');
     }
   }
 }
@@ -145,6 +181,11 @@ export class VoiceService {
 
     // Initialize speech synthesis
     this.synthesis = window.speechSynthesis;
+  }
+
+  // Check if speech recognition is supported
+  isRecognitionSupported(): boolean {
+    return !!this.recognition;
   }
 
   // Start listening
@@ -286,6 +327,44 @@ export class NotificationService {
       this.sendNotification(title, { body });
     }, delay);
   }
+
+  hasPermission(): boolean {
+    return this.permission === 'granted';
+  }
+}
+
+// Audio transcription service
+export class TranscriptionService {
+  async transcribeAudio(audioBlob: Blob): Promise<string> {
+    try {
+      if (!OPENAI_API_KEY) {
+        throw new Error('OpenAI API key not configured');
+      }
+
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'audio.wav');
+      formData.append('model', 'whisper-1');
+
+      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Transcription failed: ${response.status} - ${errorData}`);
+      }
+
+      const data = await response.json();
+      return data.text;
+    } catch (error: any) {
+      console.error('Transcription Error:', error);
+      throw new Error(error.message || 'Failed to transcribe audio');
+    }
+  }
 }
 
 // Export singleton instances
@@ -293,11 +372,4 @@ export const claudeService = new ClaudeService();
 export const imageService = new ImageGenerationService();
 export const voiceService = new VoiceService();
 export const notificationService = new NotificationService();
-
-// Window type declarations for TypeScript
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
-  }
-}
+export const transcriptionService = new TranscriptionService();
